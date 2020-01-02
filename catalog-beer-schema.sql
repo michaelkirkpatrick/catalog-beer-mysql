@@ -33,8 +33,8 @@ CREATE TABLE `api_logging` (
 CREATE TABLE `api_usage` (
   `id` varchar(36) NOT NULL,
   `apiKey` varchar(36) DEFAULT NULL,
-  `year` int(4) DEFAULT NULL,
-  `month` int(2) DEFAULT NULL,
+  `year` smallint(4) DEFAULT NULL,
+  `month` tinyint(2) DEFAULT NULL,
   `count` int(11) DEFAULT NULL,
   `lastUpdated` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
