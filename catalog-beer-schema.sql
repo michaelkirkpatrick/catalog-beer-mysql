@@ -25,6 +25,8 @@ CREATE TABLE `api_logging` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+
+
 # Create api_usage
 # ------------------------------------------------------------
 
