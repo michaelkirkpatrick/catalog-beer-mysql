@@ -1,5 +1,4 @@
-
-# Dump of table api_keys
+# Create api_keys
 # ------------------------------------------------------------
 
 CREATE TABLE `api_keys` (
@@ -10,7 +9,7 @@ CREATE TABLE `api_keys` (
 
 
 
-# Dump of table api_logging
+# Create api_logging
 # ------------------------------------------------------------
 
 CREATE TABLE `api_logging` (
@@ -26,9 +25,22 @@ CREATE TABLE `api_logging` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+# Create api_usage
+# ------------------------------------------------------------
+
+CREATE TABLE `api_usage` (
+  `id` varchar(36) NOT NULL,
+  `apiKey` varchar(36) DEFAULT NULL,
+  `year` int(4) DEFAULT NULL,
+  `month` int(2) DEFAULT NULL,
+  `count` int(11) DEFAULT NULL,
+  `lastUpdated` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
-# Dump of table beer
+
+# Create beer
 # ------------------------------------------------------------
 
 CREATE TABLE `beer` (
@@ -59,7 +71,7 @@ CREATE TABLE `billing` (
 
 
 
-# Dump of table brewer
+# Create brewer
 # ------------------------------------------------------------
 
 CREATE TABLE `brewer` (
@@ -79,7 +91,7 @@ CREATE TABLE `brewer` (
 
 
 
-# Dump of table error_log
+# Create error_log
 # ------------------------------------------------------------
 
 CREATE TABLE `error_log` (
@@ -98,7 +110,7 @@ CREATE TABLE `error_log` (
 
 
 
-# Dump of table location
+# Create location
 # ------------------------------------------------------------
 
 CREATE TABLE `location` (
@@ -112,7 +124,7 @@ CREATE TABLE `location` (
 
 
 
-# Dump of table privledges
+# Create privledges
 # ------------------------------------------------------------
 
 CREATE TABLE `privledges` (
@@ -124,7 +136,7 @@ CREATE TABLE `privledges` (
 
 
 
-# Dump of table subdivisions
+# Create subdivisions
 # ------------------------------------------------------------
 
 CREATE TABLE `subdivisions` (
@@ -135,7 +147,7 @@ CREATE TABLE `subdivisions` (
 
 
 
-# Dump of table US_addresses
+# Create US_addresses
 # ------------------------------------------------------------
 
 CREATE TABLE `US_addresses` (
@@ -152,7 +164,7 @@ CREATE TABLE `US_addresses` (
 
 
 
-# Dump of table users
+# Create users
 # ------------------------------------------------------------
 
 CREATE TABLE `users` (
@@ -166,13 +178,3 @@ CREATE TABLE `users` (
   `admin` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-
-
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
