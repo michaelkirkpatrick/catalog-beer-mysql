@@ -60,18 +60,6 @@ CREATE TABLE `beer` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
-# Billing table
-# ------------------------------------------------------------
-
-CREATE TABLE `billing` (
-  `id` varchar(36) NOT NULL,
-  `apiKey` varchar(36) DEFAULT NULL,
-  `freeRemaining` int(4) DEFAULT NULL,
-  `paidCount` int(11) DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
 
 # Create brewer
 # ------------------------------------------------------------
