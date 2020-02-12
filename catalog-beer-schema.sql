@@ -1,34 +1,21 @@
-# Create api_keys
-# ------------------------------------------------------------
-
 CREATE TABLE `api_keys` (
   `id` varchar(36) NOT NULL DEFAULT '',
   `userID` varchar(36) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
-
-# Create api_logging
-# ------------------------------------------------------------
-
 CREATE TABLE `api_logging` (
   `id` varchar(36) NOT NULL DEFAULT '',
   `apiKey` varchar(36) DEFAULT NULL,
   `timestamp` int(11) DEFAULT NULL,
   `ipAddress` varchar(45) DEFAULT NULL,
-  `method` varchar(4) DEFAULT NULL,
+  `method` varchar(6) DEFAULT NULL,
   `uri` varchar(255) DEFAULT NULL,
   `body` text,
   `response` text,
   `responseCode` int(3) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-
-# Create api_usage
-# ------------------------------------------------------------
 
 CREATE TABLE `api_usage` (
   `id` varchar(36) NOT NULL,
@@ -39,11 +26,6 @@ CREATE TABLE `api_usage` (
   `lastUpdated` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-
-# Create beer
-# ------------------------------------------------------------
 
 CREATE TABLE `beer` (
   `id` varchar(36) NOT NULL DEFAULT '',
@@ -56,13 +38,10 @@ CREATE TABLE `beer` (
   `cbVerified` tinyint(1) DEFAULT '0',
   `brewerVerified` tinyint(1) DEFAULT '0',
   `lastModified` int(11) DEFAULT NULL,
+  `proposed` tinyint(1) DEFAULT '0',
+  `authorizationCode` varchar(36) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-
-# Create brewer
-# ------------------------------------------------------------
 
 CREATE TABLE `brewer` (
   `id` varchar(36) NOT NULL DEFAULT '',
@@ -70,6 +49,7 @@ CREATE TABLE `brewer` (
   `description` text,
   `shortDescription` varchar(160) DEFAULT NULL,
   `url` varchar(255) DEFAULT NULL,
+  `domainName` varchar(255) DEFAULT NULL,
   `cbVerified` tinyint(1) DEFAULT '0',
   `brewerVerified` tinyint(1) DEFAULT '0',
   `facebookURL` varchar(255) DEFAULT NULL,
@@ -78,11 +58,6 @@ CREATE TABLE `brewer` (
   `lastModified` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-
-# Create error_log
-# ------------------------------------------------------------
 
 CREATE TABLE `error_log` (
   `id` varchar(36) NOT NULL DEFAULT '',
@@ -98,47 +73,29 @@ CREATE TABLE `error_log` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
-
-# Create location
-# ------------------------------------------------------------
-
 CREATE TABLE `location` (
   `id` varchar(36) NOT NULL DEFAULT '',
   `brewerID` varchar(36) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
   `url` varchar(255) DEFAULT NULL,
   `countryCode` varchar(2) DEFAULT NULL,
+  `latitude` float(9,7) DEFAULT NULL,
+  `longitude` float(10,7) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
-
-# Create privledges
-# ------------------------------------------------------------
-
-CREATE TABLE `privledges` (
+CREATE TABLE `privileges` (
   `id` varchar(36) NOT NULL DEFAULT '',
   `userID` varchar(36) DEFAULT NULL,
   `brewerID` varchar(36) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
-
-# Create subdivisions
-# ------------------------------------------------------------
-
 CREATE TABLE `subdivisions` (
   `sub_code` varchar(5) NOT NULL DEFAULT '',
   `sub_name` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`sub_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-
-# Create US_addresses
-# ------------------------------------------------------------
 
 CREATE TABLE `US_addresses` (
   `locationID` varchar(36) NOT NULL DEFAULT '',
@@ -152,19 +109,14 @@ CREATE TABLE `US_addresses` (
   PRIMARY KEY (`locationID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
-
-# Create users
-# ------------------------------------------------------------
-
 CREATE TABLE `users` (
   `id` varchar(36) NOT NULL DEFAULT '',
   `email` varchar(255) DEFAULT NULL,
   `passwordHash` varchar(255) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
+  `emailVerified` tinyint(1) DEFAULT '0',
   `emailAuth` varchar(36) DEFAULT NULL,
   `emailAuthSent` int(11) DEFAULT NULL,
-  `emailVerified` tinyint(1) DEFAULT '0',
   `admin` tinyint(1) DEFAULT '0',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
