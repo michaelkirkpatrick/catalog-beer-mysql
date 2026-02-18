@@ -26,7 +26,8 @@ CREATE TABLE `api_usage` (
   `month` tinyint(2) NOT NULL,
   `count` int(11) NOT NULL,
   `lastUpdated` int(11) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_apiKey_year_month` (`apiKey`,`year`,`month`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `beer` (
