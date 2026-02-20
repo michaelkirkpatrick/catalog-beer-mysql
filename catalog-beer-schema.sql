@@ -1,3 +1,17 @@
+CREATE TABLE `algolia` (
+  `algolia_id` varchar(36) NOT NULL,
+  `beer_id` varchar(36) DEFAULT NULL,
+  `brewer_id` varchar(36) DEFAULT NULL,
+  `location_id` varchar(36) DEFAULT NULL,
+  PRIMARY KEY (`algolia_id`),
+  KEY `idx_beer_id` (`beer_id`),
+  KEY `idx_brewer_id` (`brewer_id`),
+  KEY `idx_location_id` (`location_id`),
+  CONSTRAINT `algolia_ibfk_1` FOREIGN KEY (`beer_id`) REFERENCES `beer` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `algolia_ibfk_2` FOREIGN KEY (`brewer_id`) REFERENCES `brewer` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `algolia_ibfk_3` FOREIGN KEY (`location_id`) REFERENCES `location` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE `api_keys` (
   `id` varchar(36) NOT NULL,
   `userID` varchar(36) NOT NULL,

@@ -34,13 +34,16 @@ The canonical schema is `catalog-beer-schema.sql`.
 - **`api_keys`** — API keys linked to users.
 - **`privileges`** — Maps users to brewers they can manage (many-to-many).
 
+### Search tables
+- **`algolia`** — Maps local records to Algolia search index objectIDs. Polymorphic: each row references exactly one of `beer`, `brewer`, or `location` via nullable FKs (`beer_id`, `brewer_id`, `location_id`). Uses snake_case column names (unlike the rest of the schema).
+
 ### Operational tables
 - **`api_logging`** — Request/response log for API calls.
 - **`api_usage`** — Monthly API usage counters per key.
 - **`error_log`** — Application error tracking.
 
 ### Key relationships
-All foreign keys use `ON DELETE CASCADE`. The central entity is `brewer` — deleting a brewer cascades to its beers, locations, addresses, and user privileges.
+All foreign keys use `ON DELETE CASCADE`. The central entity is `brewer` — deleting a brewer cascades to its beers, locations, addresses, user privileges, and Algolia search mappings.
 
 ## Files
 
