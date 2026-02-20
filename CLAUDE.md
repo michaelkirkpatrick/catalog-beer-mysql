@@ -54,4 +54,4 @@ All foreign keys use `ON DELETE CASCADE`. The central entity is `brewer` — del
 
 ## Schema Versioning
 
-Schema versions are tracked via git tags: `v1.0.0`, `v1.1`, `v1.2`, `v1.3`. Notable additions across versions include the billing/`api_usage` table (v1.1) and foreign key constraints (v1.3).
+Schema versions are tracked via git tags: `v1.0.0`, `v1.1`, `v1.2`, `v1.3`, `v1.4`. Notable additions across versions include the billing/`api_usage` table (v1.1), foreign key constraints (v1.3), and the Algolia search mapping table (v1.4).
