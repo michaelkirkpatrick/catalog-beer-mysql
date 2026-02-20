@@ -91,6 +91,7 @@ CREATE TABLE `error_log` (
   `resolved` bit(1) DEFAULT b'0',
   PRIMARY KEY (`id`),
   KEY `fk_userID` (`userID`) USING BTREE,
+  KEY `idx_resolved_timestamp` (`resolved`,`timestamp`),
   CONSTRAINT `error_log_ibfk_1` FOREIGN KEY (`userID`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
