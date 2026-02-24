@@ -23,23 +23,23 @@ CREATE TABLE `api_keys` (
 CREATE TABLE `api_logging` (
   `id` varchar(36) NOT NULL,
   `apiKey` varchar(36) DEFAULT NULL,
-  `timestamp` int(11) DEFAULT NULL,
+  `timestamp` int DEFAULT NULL,
   `ipAddress` varchar(45) DEFAULT NULL,
   `method` varchar(6) DEFAULT NULL,
   `uri` varchar(255) DEFAULT NULL,
   `body` text,
   `response` text,
-  `responseCode` int(3) DEFAULT NULL,
+  `responseCode` int DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `api_usage` (
   `id` varchar(36) NOT NULL,
   `apiKey` varchar(36) NOT NULL,
-  `year` smallint(4) NOT NULL,
-  `month` tinyint(2) NOT NULL,
-  `count` int(11) NOT NULL,
-  `lastUpdated` int(11) NOT NULL,
+  `year` smallint NOT NULL,
+  `month` tinyint NOT NULL,
+  `count` int NOT NULL,
+  `lastUpdated` int NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_apiKey_year_month` (`apiKey`,`year`,`month`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -51,10 +51,10 @@ CREATE TABLE `beer` (
   `style` varchar(255) NOT NULL,
   `description` text,
   `abv` decimal(4,1) NOT NULL,
-  `ibu` int(4) DEFAULT NULL,
-  `cbVerified` bit(1) DEFAULT b'0',
-  `brewerVerified` bit(1) DEFAULT b'0',
-  `lastModified` int(11) DEFAULT NULL,
+  `ibu` int DEFAULT NULL,
+  `cbVerified` bit(1) NOT NULL DEFAULT b'0',
+  `brewerVerified` bit(1) NOT NULL DEFAULT b'0',
+  `lastModified` int NOT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_brewerID` (`brewerID`) USING BTREE,
   FULLTEXT KEY `ft_beer_search` (`name`,`style`,`description`),
@@ -68,12 +68,9 @@ CREATE TABLE `brewer` (
   `shortDescription` varchar(160) DEFAULT NULL,
   `url` varchar(255) DEFAULT NULL,
   `domainName` varchar(255) DEFAULT NULL,
-  `cbVerified` bit(1) DEFAULT b'0',
-  `brewerVerified` bit(1) DEFAULT b'0',
-  `facebookURL` varchar(255) DEFAULT NULL,
-  `twitterURL` varchar(255) DEFAULT NULL,
-  `instagramURL` varchar(255) DEFAULT NULL,
-  `lastModified` int(11) DEFAULT NULL,
+  `cbVerified` bit(1) NOT NULL DEFAULT b'0',
+  `brewerVerified` bit(1) NOT NULL DEFAULT b'0',
+  `lastModified` int NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_url` (`url`) USING BTREE,
   UNIQUE KEY `unique_domain` (`domainName`) USING BTREE,
@@ -88,13 +85,12 @@ CREATE TABLE `error_log` (
   `userID` varchar(36) DEFAULT NULL,
   `URI` varchar(255) DEFAULT NULL,
   `ipAddress` varchar(45) DEFAULT NULL,
-  `timestamp` int(11) DEFAULT NULL,
+  `timestamp` int DEFAULT NULL,
   `filename` varchar(255) DEFAULT NULL,
   `resolved` bit(1) DEFAULT b'0',
   PRIMARY KEY (`id`),
   KEY `fk_userID` (`userID`) USING BTREE,
-  KEY `idx_resolved_timestamp` (`resolved`,`timestamp`),
-  CONSTRAINT `error_log_ibfk_1` FOREIGN KEY (`userID`) REFERENCES `users` (`id`) ON DELETE CASCADE
+  KEY `idx_resolved_timestamp` (`resolved`,`timestamp`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `location` (
@@ -105,9 +101,9 @@ CREATE TABLE `location` (
   `countryCode` varchar(2) NOT NULL,
   `latitude` float(9,7) DEFAULT NULL,
   `longitude` float(10,7) DEFAULT NULL,
-  `cbVerified` bit(1) DEFAULT b'0',
-  `brewerVerified` bit(1) DEFAULT b'0',
-  `lastModified` int(11) DEFAULT NULL,
+  `cbVerified` bit(1) NOT NULL DEFAULT b'0',
+  `brewerVerified` bit(1) NOT NULL DEFAULT b'0',
+  `lastModified` int NOT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_brewerID` (`brewerID`),
   CONSTRAINT `fk_brewerID` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE
@@ -133,12 +129,12 @@ CREATE TABLE `subdivisions` (
 CREATE TABLE `US_addresses` (
   `locationID` varchar(36) NOT NULL,
   `address1` varchar(255) DEFAULT NULL,
-  `address2` varchar(255) DEFAULT NULL,
-  `city` varchar(255) DEFAULT NULL,
-  `sub_code` varchar(5) DEFAULT NULL,
-  `zip5` int(5) DEFAULT NULL,
-  `zip4` int(4) DEFAULT NULL,
-  `telephone` bigint(10) DEFAULT NULL,
+  `address2` varchar(255) NOT NULL,
+  `city` varchar(255) NOT NULL,
+  `sub_code` varchar(5) NOT NULL,
+  `zip5` int NOT NULL,
+  `zip4` int DEFAULT NULL,
+  `telephone` bigint DEFAULT NULL,
   PRIMARY KEY (`locationID`),
   KEY `fk_sub_code` (`sub_code`),
   CONSTRAINT `fk_locationID` FOREIGN KEY (`locationID`) REFERENCES `location` (`id`) ON DELETE CASCADE,
@@ -152,8 +148,11 @@ CREATE TABLE `users` (
   `name` varchar(255) NOT NULL,
   `emailVerified` bit(1) NOT NULL DEFAULT b'0',
   `emailAuth` varchar(36) DEFAULT NULL,
-  `emailAuthSent` int(11) DEFAULT NULL,
+  `emailAuthSent` int DEFAULT NULL,
+  `passwordResetSent` int DEFAULT NULL,
+  `passwordResetKey` varchar(36) DEFAULT NULL,
   `admin` bit(1) NOT NULL DEFAULT b'0',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_email` (`email`) USING BTREE
+  UNIQUE KEY `unique_email` (`email`) USING BTREE,
+  UNIQUE KEY `unique_passwordResetKey` (`passwordResetKey`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
