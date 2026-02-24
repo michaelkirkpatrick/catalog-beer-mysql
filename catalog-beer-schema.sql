@@ -57,6 +57,7 @@ CREATE TABLE `beer` (
   `lastModified` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `fk_brewerID` (`brewerID`) USING BTREE,
+  FULLTEXT KEY `ft_beer_search` (`name`,`style`,`description`),
   CONSTRAINT `beer_ibfk_1` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -75,7 +76,8 @@ CREATE TABLE `brewer` (
   `lastModified` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_url` (`url`) USING BTREE,
-  UNIQUE KEY `unique_domain` (`domainName`) USING BTREE
+  UNIQUE KEY `unique_domain` (`domainName`) USING BTREE,
+  FULLTEXT KEY `ft_brewer_search` (`name`,`description`,`shortDescription`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `error_log` (
