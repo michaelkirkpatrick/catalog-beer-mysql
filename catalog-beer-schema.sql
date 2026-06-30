@@ -241,14 +241,6 @@ CREATE TABLE `class_alias` (
   CONSTRAINT `fk_class_alias_class` FOREIGN KEY (`class`) REFERENCES `style_class` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `style_alias_approx` (
-  `alias` varchar(255) NOT NULL,
-  `style_id` varchar(64) NOT NULL,
-  PRIMARY KEY (`alias`),
-  KEY `fk_style_alias_approx_style` (`style_id`),
-  CONSTRAINT `fk_style_alias_approx_style` FOREIGN KEY (`style_id`) REFERENCES `style` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
 CREATE TABLE `style_meta` (
   `id` tinyint NOT NULL DEFAULT '1',
   `version` varchar(32) NOT NULL,
