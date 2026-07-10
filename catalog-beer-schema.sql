@@ -209,7 +209,6 @@ CREATE TABLE `style` (
   `og_max` decimal(5,3) DEFAULT NULL,
   `fg_min` decimal(5,3) DEFAULT NULL,
   `fg_max` decimal(5,3) DEFAULT NULL,
-  `sort_order` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_beverage_type` (`beverage_type`),
   KEY `idx_parent` (`parent`),
