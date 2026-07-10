@@ -224,6 +224,21 @@ CREATE TABLE `style_alias` (
   CONSTRAINT `fk_style_alias_style` FOREIGN KEY (`style_id`) REFERENCES `style` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE `style_content` (
+  `style_id` varchar(64) NOT NULL,
+  `description` text NOT NULL,
+  `appearance` text DEFAULT NULL,
+  `aroma` text DEFAULT NULL,
+  `flavor` text DEFAULT NULL,
+  `mouthfeel` text DEFAULT NULL,
+  `history` text NOT NULL,
+  `notes` text DEFAULT NULL,
+  `commercial_examples` json DEFAULT NULL,
+  `sources` json DEFAULT NULL,
+  PRIMARY KEY (`style_id`),
+  CONSTRAINT `fk_style_content_style` FOREIGN KEY (`style_id`) REFERENCES `style` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE `parent_alias` (
   `alias` varchar(255) NOT NULL,
   `parent` varchar(64) NOT NULL,
