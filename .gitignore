@@ -1,5 +1,6 @@
-CLAUDE.md
 .claude/
-.nova/
 .DS_Store
+.nova/
 **/.DS_Store
+CLAUDE.md
+migrations/style-vocabulary-seed-v2.3.0.sql
