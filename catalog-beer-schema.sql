@@ -205,6 +205,11 @@ CREATE TABLE `style` (
   `parent` varchar(64) NOT NULL,
   `source` varchar(32) NOT NULL,
   `is_catch_all` tinyint(1) NOT NULL DEFAULT '0',
+  -- Catalogued beers using this style. A ranking tiebreaker for
+  -- GET /style/search, so styles no beer uses stop outranking styles thousands
+  -- of beers use. Denormalised and stale by design; refresh with
+  -- migrations/refresh-style-beer-count.sql on the sitemap cron's cadence.
+  `beer_count` int NOT NULL DEFAULT '0',
   `abv_min` decimal(4,1) DEFAULT NULL,
   `abv_max` decimal(4,1) DEFAULT NULL,
   `ibu_min` int DEFAULT NULL,
