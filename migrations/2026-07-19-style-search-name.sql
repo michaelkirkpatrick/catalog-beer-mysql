@@ -3,6 +3,13 @@
 -- ----------------------------------------------------------------------------
 -- Supersedes the ranking approach in 2026-07-17-style-search-fulltext.sql.
 --
+-- NOTE: the population step below is itself superseded by
+-- 2026-07-20-style-search-dedupe.sql, which stores each distinct token once.
+-- Concatenating aliases verbatim, as this file does, lets term frequency count
+-- alias repetitions — ranking styles by how many synonyms they happen to have.
+-- The schema here is still current; only the values are rewritten. This file is
+-- left as it was applied so it stays an accurate record of what ran.
+--
 -- WHY
 -- The first cut UNIONed three MATCH() probes — style.canonical_name (x3),
 -- style_alias.alias (x2), style_content.description (x1) — and took the best
