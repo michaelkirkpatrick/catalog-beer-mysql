@@ -195,6 +195,12 @@ CREATE TABLE `style_parent` (
 CREATE TABLE `style` (
   `id` varchar(64) NOT NULL,
   `canonical_name` varchar(255) NOT NULL,
+  -- canonical_name + every style_alias row, as one FULLTEXT document. Lets
+  -- GET /style/search score identity terms against a single corpus, and is the
+  -- only reason "IPA" can reach styles whose names spell out "India Pale Ale".
+  -- Denormalised: rebuild with migrations/rebuild-style-search-name.sql after
+  -- every vocabulary reseed, or search silently goes stale.
+  `search_name` text,
   `beverage_type` enum('beer','cider','perry','mead') NOT NULL DEFAULT 'beer',
   `parent` varchar(64) NOT NULL,
   `source` varchar(32) NOT NULL,
@@ -212,7 +218,7 @@ CREATE TABLE `style` (
   PRIMARY KEY (`id`),
   KEY `idx_beverage_type` (`beverage_type`),
   KEY `idx_parent` (`parent`),
-  FULLTEXT KEY `ft_style_search` (`canonical_name`),
+  FULLTEXT KEY `ft_style_search_name` (`search_name`),
   CONSTRAINT `fk_style_parent` FOREIGN KEY (`parent`) REFERENCES `style_parent` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -221,7 +227,6 @@ CREATE TABLE `style_alias` (
   `style_id` varchar(64) NOT NULL,
   PRIMARY KEY (`alias`),
   KEY `fk_style_alias_style` (`style_id`),
-  FULLTEXT KEY `ft_style_alias_search` (`alias`),
   CONSTRAINT `fk_style_alias_style` FOREIGN KEY (`style_id`) REFERENCES `style` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
