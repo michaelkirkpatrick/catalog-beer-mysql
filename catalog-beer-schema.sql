@@ -69,6 +69,9 @@ CREATE TABLE `beer` (
   KEY `idx_class` (`class`),
   KEY `fk_beer_style` (`style_id`),
   FULLTEXT KEY `ft_beer_search` (`name`,`style`,`description`),
+  -- Name-only index: /beer/search ranks name matches above description/style
+  -- matches, which needs MATCH(name) on exactly this column set.
+  FULLTEXT KEY `ft_beer_name` (`name`),
   CONSTRAINT `beer_ibfk_1` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_beer_class` FOREIGN KEY (`class`) REFERENCES `style_class` (`slug`),
   CONSTRAINT `fk_beer_parent` FOREIGN KEY (`parent`) REFERENCES `style_parent` (`slug`),
@@ -88,7 +91,10 @@ CREATE TABLE `brewer` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_url` (`url`) USING BTREE,
   UNIQUE KEY `unique_domain` (`domainName`) USING BTREE,
-  FULLTEXT KEY `ft_brewer_search` (`name`,`description`,`shortDescription`)
+  FULLTEXT KEY `ft_brewer_search` (`name`,`description`,`shortDescription`),
+  -- Name-only index: /brewer/search ranks name matches above description
+  -- matches, which needs MATCH(name) on exactly this column set.
+  FULLTEXT KEY `ft_brewer_name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `error_log` (
