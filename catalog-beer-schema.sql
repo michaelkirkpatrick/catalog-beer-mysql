@@ -212,6 +212,7 @@ CREATE TABLE `style` (
   PRIMARY KEY (`id`),
   KEY `idx_beverage_type` (`beverage_type`),
   KEY `idx_parent` (`parent`),
+  FULLTEXT KEY `ft_style_search` (`canonical_name`),
   CONSTRAINT `fk_style_parent` FOREIGN KEY (`parent`) REFERENCES `style_parent` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -220,6 +221,7 @@ CREATE TABLE `style_alias` (
   `style_id` varchar(64) NOT NULL,
   PRIMARY KEY (`alias`),
   KEY `fk_style_alias_style` (`style_id`),
+  FULLTEXT KEY `ft_style_alias_search` (`alias`),
   CONSTRAINT `fk_style_alias_style` FOREIGN KEY (`style_id`) REFERENCES `style` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -235,6 +237,7 @@ CREATE TABLE `style_content` (
   `commercial_examples` json DEFAULT NULL,
   `sources` json DEFAULT NULL,
   PRIMARY KEY (`style_id`),
+  FULLTEXT KEY `ft_style_content_search` (`description`),
   CONSTRAINT `fk_style_content_style` FOREIGN KEY (`style_id`) REFERENCES `style` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
