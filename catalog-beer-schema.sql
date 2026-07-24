@@ -116,7 +116,7 @@ CREATE TABLE `error_log` (
 CREATE TABLE `location` (
   `id` varchar(36) NOT NULL,
   `brewerID` varchar(36) NOT NULL,
-  `name` varchar(255) NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
   `url` varchar(255) DEFAULT NULL,
   `countryCode` varchar(2) NOT NULL,
   `latitude` float(9,7) DEFAULT NULL,

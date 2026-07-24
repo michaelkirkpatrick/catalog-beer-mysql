@@ -1,0 +1,32 @@
+-- ============================================================================
+-- Location name becomes optional
+-- ----------------------------------------------------------------------------
+-- location.name was NOT NULL and the API hard-failed an empty name (error 50),
+-- so anyone adding a taproom without a name of its own typed the only string
+-- available: the city. Of 416 locations, 266 have a name that is exactly the
+-- city and 4 have a name that merely starts with it — the requirement was
+-- producing filler, not names. Most breweries don't name a taproom separately;
+-- they refer to it by the community it sits in, which the address already
+-- records.
+--
+-- The API now accepts a missing name and stores NULL. Consumers compose a
+-- display name (brewer + city) when name is null.
+--
+-- RUNBOOK (staging, then production):
+--   1. Back up the database (mysqldump catalogbeer > backup.sql)
+--   2. mysql catalogbeer < 2026-07-24-location-name-nullable.sql  (this file)
+--   3. Deploy the frontend (its null-name fallback is safe to ship early —
+--      no NULL names exist until the API allows them).
+--   4. Deploy the API (DB-first is required — under strict mode the new API's
+--      first NULL write errors against a NOT NULL column).
+--   5. Spot-check: POST /location with no name should return 201 with
+--      "name": null, not a 400.
+--
+-- NOTE: the existing 266 city-as-name rows are deliberately NOT backfilled
+-- here. Nulling them is a separate, reviewed decision.
+-- ============================================================================
+
+ALTER TABLE `location` MODIFY `name` varchar(255) DEFAULT NULL;
+
+-- Verification:
+--   SHOW COLUMNS FROM location LIKE 'name';   -- Null should read YES
