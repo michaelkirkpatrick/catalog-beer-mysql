@@ -88,9 +88,18 @@ CREATE TABLE `brewer` (
   `cbVerified` bit(1) NOT NULL DEFAULT b'0',
   `brewerVerified` bit(1) NOT NULL DEFAULT b'0',
   `lastModified` int NOT NULL,
+  -- URL health, written by the check-urls monitoring cron (report-only; see
+  -- migrations/2026-07-28-brewer-url-status.sql for status meanings)
+  `urlStatus` enum('ok','unverified','blocked','moved','parked','url_wrong','server_error','no_answer','gone') NOT NULL DEFAULT 'unverified',
+  `urlCheckedAt` int DEFAULT NULL,
+  `urlLastOkAt` int DEFAULT NULL,
+  `urlFailCount` smallint unsigned NOT NULL DEFAULT '0',
+  `urlFinal` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_url` (`url`) USING BTREE,
   UNIQUE KEY `unique_domain` (`domainName`) USING BTREE,
+  KEY `idx_url_check` (`urlCheckedAt`),
+  KEY `idx_url_status` (`urlStatus`),
   FULLTEXT KEY `ft_brewer_search` (`name`,`description`,`shortDescription`),
   -- Name-only index: /brewer/search ranks name matches above description
   -- matches, which needs MATCH(name) on exactly this column set.
