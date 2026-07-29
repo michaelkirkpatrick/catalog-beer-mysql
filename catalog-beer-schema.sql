@@ -62,12 +62,17 @@ CREATE TABLE `beer` (
   `cbVerified` bit(1) NOT NULL DEFAULT b'0',
   `brewerVerified` bit(1) NOT NULL DEFAULT b'0',
   `lastModified` int NOT NULL,
+  -- Creation timestamp, backfilled from lastModified. See
+  -- migrations/2026-07-28-created-at.sql for why that backfill is exact for
+  -- ~99% of rows and an upper bound for the rest.
+  `createdAt` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `fk_brewerID` (`brewerID`) USING BTREE,
   KEY `idx_beverage_type` (`beverage_type`),
   KEY `idx_parent` (`parent`),
   KEY `idx_class` (`class`),
   KEY `fk_beer_style` (`style_id`),
+  KEY `idx_beer_createdAt` (`createdAt`),
   FULLTEXT KEY `ft_beer_search` (`name`,`style`,`description`),
   -- Name-only index: /beer/search ranks name matches above description/style
   -- matches, which needs MATCH(name) on exactly this column set.
@@ -95,11 +100,14 @@ CREATE TABLE `brewer` (
   `urlLastOkAt` int DEFAULT NULL,
   `urlFailCount` smallint unsigned NOT NULL DEFAULT '0',
   `urlFinal` varchar(255) DEFAULT NULL,
+  -- See migrations/2026-07-28-created-at.sql
+  `createdAt` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_url` (`url`) USING BTREE,
   UNIQUE KEY `unique_domain` (`domainName`) USING BTREE,
   KEY `idx_url_check` (`urlCheckedAt`),
   KEY `idx_url_status` (`urlStatus`),
+  KEY `idx_brewer_createdAt` (`createdAt`),
   FULLTEXT KEY `ft_brewer_search` (`name`,`description`,`shortDescription`),
   -- Name-only index: /brewer/search ranks name matches above description
   -- matches, which needs MATCH(name) on exactly this column set.
@@ -133,9 +141,28 @@ CREATE TABLE `location` (
   `cbVerified` bit(1) NOT NULL DEFAULT b'0',
   `brewerVerified` bit(1) NOT NULL DEFAULT b'0',
   `lastModified` int NOT NULL,
+  -- See migrations/2026-07-28-created-at.sql
+  `createdAt` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   KEY `fk_brewerID` (`brewerID`),
+  KEY `idx_location_createdAt` (`createdAt`),
   CONSTRAINT `fk_brewerID` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Daily catalog-health snapshots, written by catalog-beer-api
+-- cron/snapshot-metrics.php. Narrow by design — (date, metric, dimension,
+-- value) rather than a column per metric — so adding a metric never needs a
+-- migration. Values are raw counts; ratios and composite "health scores" are
+-- computed at display time so the formula can change without invalidating
+-- stored history. `dimension` is '' for a plain scalar or a bucket name for a
+-- grouped metric (brewer_url_status/parked, beer_beverage_type/cider, …).
+CREATE TABLE `metrics_daily` (
+  `snapshotDate` date NOT NULL,
+  `metric` varchar(64) NOT NULL,
+  `dimension` varchar(64) NOT NULL DEFAULT '',
+  `value` bigint NOT NULL,
+  PRIMARY KEY (`snapshotDate`,`metric`,`dimension`),
+  KEY `idx_metric_date` (`metric`,`snapshotDate`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `privileges` (
