@@ -17,6 +17,8 @@ CREATE TABLE `api_keys` (
   `userID` varchar(36) NOT NULL,
   `requestLimit` int NOT NULL DEFAULT '1000',
   `requestBuffer` int NOT NULL DEFAULT '50',
+  `billingEnabled` bit(1) NOT NULL DEFAULT b'0',
+  `monthlySpendCapCents` int NOT NULL DEFAULT '5000',
   PRIMARY KEY (`id`),
   KEY `fk_userID` (`userID`) USING BTREE,
   CONSTRAINT `api_keys_ibfk_1` FOREIGN KEY (`userID`) REFERENCES `users` (`id`) ON DELETE CASCADE
@@ -44,6 +46,34 @@ CREATE TABLE `api_usage` (
   `lastUpdated` int NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_apiKey_year_month` (`apiKey`,`year`,`month`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Stripe overage billing: one row per key per month with billable overage
+-- ($1 per 1,000 requests over the free tier, blocks rounded up). Written by
+-- catalog-beer-api cron/bill-usage.php; status advanced by the cron
+-- (pending -> invoiced) and by Stripe webhooks (invoiced -> paid / failed /
+-- written_off). status='pending' rows roll forward until the unbilled total
+-- reaches the $5 invoice floor (or the January annual sweep). No foreign
+-- keys, matching api_usage/api_logging: rows are billing history and must
+-- survive user/key deletion.
+CREATE TABLE `billing_charges` (
+  `id` varchar(36) NOT NULL,
+  `userID` varchar(36) NOT NULL,
+  `apiKey` varchar(36) NOT NULL,
+  `year` smallint NOT NULL,
+  `month` tinyint NOT NULL,
+  `totalRequests` int NOT NULL,
+  `billableRequests` int NOT NULL,
+  `amountCents` int NOT NULL,
+  `stripeInvoiceItemID` varchar(255) DEFAULT NULL,
+  `stripeInvoiceID` varchar(255) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'pending',
+  `createdAt` int NOT NULL,
+  `lastUpdated` int NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_apiKey_year_month` (`apiKey`,`year`,`month`),
+  KEY `idx_userID` (`userID`),
+  KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `beer` (
@@ -208,6 +238,7 @@ CREATE TABLE `users` (
   `passwordResetSent` int DEFAULT NULL,
   `passwordResetKey` varchar(36) DEFAULT NULL,
   `admin` bit(1) NOT NULL DEFAULT b'0',
+  `stripeCustomerID` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_email` (`email`) USING BTREE,
   UNIQUE KEY `unique_passwordResetKey` (`passwordResetKey`) USING BTREE
