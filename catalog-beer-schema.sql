@@ -133,6 +133,10 @@ CREATE TABLE `brewer` (
   -- The URL that was removed, kept when a URL is cleared rather than replaced.
   -- See migrations/2026-08-02-brewer-url-history.sql
   `urlLastKnown` varchar(255) DEFAULT NULL,
+  -- RDAP registration date of the URL's domain. Later than createdAt means the
+  -- domain lapsed and changed hands since we catalogued the brewery.
+  -- See migrations/2026-08-02-brewer-url-domain-registered.sql
+  `urlDomainRegistered` date DEFAULT NULL,
   -- See migrations/2026-07-28-created-at.sql
   `createdAt` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
