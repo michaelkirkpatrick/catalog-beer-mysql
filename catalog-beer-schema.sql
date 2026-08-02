@@ -130,6 +130,9 @@ CREATE TABLE `brewer` (
   `urlLastOkAt` int DEFAULT NULL,
   `urlFailCount` smallint unsigned NOT NULL DEFAULT '0',
   `urlFinal` varchar(255) DEFAULT NULL,
+  -- The URL that was removed, kept when a URL is cleared rather than replaced.
+  -- See migrations/2026-08-02-brewer-url-history.sql
+  `urlLastKnown` varchar(255) DEFAULT NULL,
   -- See migrations/2026-07-28-created-at.sql
   `createdAt` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
@@ -142,6 +145,27 @@ CREATE TABLE `brewer` (
   -- Name-only index: /brewer/search ranks name matches above description
   -- matches, which needs MATCH(name) on exactly this column set.
   FULLTEXT KEY `ft_brewer_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- Append-only history of every change to brewer.url, written by
+-- Brewer::logURLChange() in catalog-beer-api. Internal only — no endpoint
+-- exposes it. Answers "why does this brewery have no website?" long after the
+-- cleanup that removed it. See migrations/2026-08-02-brewer-url-history.sql
+CREATE TABLE `brewer_url_history` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `brewerID` char(36) NOT NULL,
+  `oldURL` varchar(255) DEFAULT NULL,
+  `newURL` varchar(255) DEFAULT NULL,
+  -- The urlStatus the change was reacting to. Repeats the brewer enum rather
+  -- than referencing it so historical rows survive later enum changes.
+  `verdict` enum('ok','unverified','blocked','moved','parked','url_wrong','server_error','no_answer','gone') DEFAULT NULL,
+  `source` enum('api','cron','cleanup') NOT NULL DEFAULT 'api',
+  `note` varchar(255) DEFAULT NULL,
+  `changedBy` char(36) DEFAULT NULL,
+  `changedAt` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_bu_history_brewer` (`brewerID`,`changedAt`),
+  CONSTRAINT `fk_bu_history_brewer` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `error_log` (
