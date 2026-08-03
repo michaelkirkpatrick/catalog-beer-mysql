@@ -246,13 +246,15 @@ CREATE TABLE `US_addresses` (
   `address2` varchar(255) NOT NULL,
   `city` varchar(255) NOT NULL,
   `sub_code` varchar(5) NOT NULL,
-  `zip5` int NOT NULL,
-  `zip4` int DEFAULT NULL,
+  `zip5` char(5) NOT NULL,
+  `zip4` char(4) DEFAULT NULL,
   `telephone` bigint DEFAULT NULL,
   PRIMARY KEY (`locationID`),
   KEY `fk_sub_code` (`sub_code`),
   CONSTRAINT `fk_locationID` FOREIGN KEY (`locationID`) REFERENCES `location` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_sub_code` FOREIGN KEY (`sub_code`) REFERENCES `subdivisions` (`sub_code`) ON DELETE CASCADE
+  CONSTRAINT `fk_sub_code` FOREIGN KEY (`sub_code`) REFERENCES `subdivisions` (`sub_code`) ON DELETE CASCADE,
+  CONSTRAINT `chk_zip5_format` CHECK (`zip5` REGEXP '^[0-9]{5}$'),
+  CONSTRAINT `chk_zip4_format` CHECK (`zip4` IS NULL OR `zip4` REGEXP '^[0-9]{4}$')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `users` (

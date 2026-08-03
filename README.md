@@ -27,6 +27,10 @@ The table exists because most of what it records has no history in the schema: `
 
 `createdAt` was added to `beer`, `brewer` and `location` in July 2026 for the same reason — before it, an edit overwrote the only date on the row, so growth over time was unmeasurable. It is backfilled from `lastModified`, which is exact for any row never edited since creation and an upper bound otherwise.
 
+## ZIP codes
+
+`US_addresses.zip5` and `.zip4` are `char(5)` / `char(4)`, not integers, with `CHECK` constraints enforcing the digit format. ZIP codes are fixed-width identifiers with significant leading zeros — 00501–09999 covers New England, New Jersey, Puerto Rico and the Virgin Islands — and nothing ever does arithmetic on one.
+
 ## See Also
 
 * [Catalog.beer - GitHub](https://github.com/michaelkirkpatrick/catalog-beer)
