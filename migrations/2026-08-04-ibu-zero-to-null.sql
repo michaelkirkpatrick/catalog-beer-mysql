@@ -1,0 +1,109 @@
+-- ============================================================================
+-- IBU: 0 becomes a real value, so the legacy 0 sentinels must become NULL
+-- ----------------------------------------------------------------------------
+-- beer.ibu has always been nullable, but nothing could ever write a 0 to it:
+-- Beer::validateIBU() guarded with empty(), which is true for 0, so every
+-- "ibu": 0 write was silently downgraded to NULL and returned 200. The range
+-- check underneath it was open at the bottom too — (0, 9999].
+--
+-- That was wrong. A beer brewed with no measurable bitterness is a different
+-- claim from a beer whose bitterness we have never recorded, and the API could
+-- only express the second. The API now accepts and stores 0, and the range is
+-- 0 to 1000 (see the ceiling note at the bottom of this file).
+--
+-- THE PROBLEM THIS MIGRATION SOLVES
+-- The 2020 import filled tens of thousands of rows with a 0 sentinel meaning
+-- "unknown", not "no bitterness" — Metrics.class.php has carried a comment
+-- about this since the metrics work, and counts them as `beer_ibu_zero`.
+--
+-- The affected rows were on STAGING. Measured 2026-08-04:
+--
+--     staging      60,658 beers, 33,459 with ibu = 0, 186 with ibu IS NULL
+--     production   58,586 beers,      0 with ibu = 0
+--
+-- Production was already clean, so this migration was a no-op there. Run it on
+-- both anyway — it is idempotent, and "already clean" is a fact worth
+-- confirming rather than assuming.
+--
+-- (An earlier draft of this file reported the 33,459 as a production figure.
+-- It was not: the local snapshot it came from, a database named `cb_prod`, in
+-- fact held staging data. Identify a snapshot by brewer count — staging runs
+-- a few hundred brewers AHEAD of production because it accumulates test data,
+-- so the bigger database is the staging one.)
+--
+-- Those 33,459 are unambiguously placeholders: 4,778 of them are IPAs, 3,010
+-- of those American-Style IPAs. An IPA does not have 0 IBU.
+--
+-- The instant the API starts treating 0 as a real value, every one of those
+-- rows begins publicly asserting that the beer has zero bitterness — through
+-- GET /beer, GET /beer/{id}, GET /brewer/{id}/beer, /beer/search, and as an
+-- indexed Algolia `ibu` attribute that drops them into the "Under 20" filter.
+--
+-- So this migration is NOT optional and it is NOT deferrable: it must run
+-- BEFORE the API that ships the validateIBU() change. Order matters in one
+-- direction only — running this early is harmless (the old API reports NULL
+-- and 0 identically, as null), running it late publishes false zeros.
+--
+-- RUNBOOK (staging, then production):
+--   1. Back up the database (mysqldump catalogbeer > backup.sql)
+--   2. Pre-flight — record the counts so step 5 has something to check:
+--        SELECT COUNT(*) FROM beer WHERE ibu = 0;
+--        SELECT COUNT(*) FROM beer WHERE ibu IS NULL;
+--   3. mysql catalogbeer < 2026-08-04-ibu-zero-to-null.sql   (this file)
+--   4. Deploy the API.
+--   5. Verify: ibu = 0 should now be 0 rows, and ibu IS NULL should equal the
+--      two pre-flight numbers added together.
+--   6. Spot-check the round trip, which was impossible before this change:
+--        POST /beer with "ibu": 0   -> 201 with "ibu": 0   (not null)
+--        PATCH /beer/{id} "ibu": null -> 200 with "ibu": null
+--
+-- NO ALGOLIA REINDEX IS NEEDED FOR IBU. The old code omitted the attribute for
+-- both 0 and NULL, and the new code omits it for NULL, so every migrated
+-- record's indexed form is byte-identical before and after.
+--
+-- THE ABV EQUIVALENT — nothing to do, but worth recording why. beer.abv is
+-- NOT NULL, so a 0 there is either a genuine non-alcoholic beer or an unfilled
+-- placeholder and the schema cannot tell them apart. As of 2026-08-04 **no row
+-- in either environment sits at abv = 0**, so there is nothing to migrate and
+-- nothing to clean up. (21 such rows were found in a July 12 staging snapshot
+-- and briefly filed as a production cleanup task; they had already been
+-- deleted from both environments.) The API now indexes abv unconditionally, so
+-- a genuine 0% beer will correctly appear under the "Under 5%" Algolia
+-- refinement. If placeholder zeros reappear, `beer_abv_zero` is the gauge.
+-- ============================================================================
+
+UPDATE `beer` SET `ibu` = NULL WHERE `ibu` = 0;
+
+-- Verification:
+--   SELECT COUNT(*) FROM beer WHERE ibu = 0;        -- expect 0
+--   SELECT COUNT(*) FROM beer WHERE ibu IS NOT NULL -- expect the pre-flight
+--     ;                                             --   "between 1 and 100"
+--                                                   --   band to be unchanged
+--   SELECT COUNT(*) FROM beer WHERE ibu > 1000;     -- expect 0; rows above the
+--                                                   --   new ceiling would be
+--                                                   --   unwritable. Max in
+--                                                   --   production is exactly
+--                                                   --   1000 (Mikkeller).
+
+-- ----------------------------------------------------------------------------
+-- WHY THE CEILING IS 1000 AND NOT 200
+-- Brewing chemistry caps real, measurable bitterness near 100 IBU — the
+-- solubility limit of iso-alpha acids at normal wort pH is roughly 100-110 ppm,
+-- and the practical limit is lower in high-gravity beers. By that standard 200
+-- would be a generous cap.
+--
+-- But this catalog records what a brewery publishes, not what a lab would
+-- measure. The highest independently lab-verified beer is Dogfish Head's
+-- Hoo Lawd at 658 IBU. Mikkeller's "1000 IBU" is a real, shipped product whose
+-- IBU claim is its actual name — and it is already in this database. A cap of
+-- 200 would make 19 existing production rows unwritable (any PUT or PATCH to
+-- them would 400), including that one.
+--
+-- 1000 keeps every genuine label claim, rejects the merely absurd (Flying
+-- Monkeys' calculated 2500, the old 9999 ceiling), and still catches the
+-- realistic error: a mistyped extra digit. It makes no existing row unwritable.
+--
+-- It does leave some obvious junk in place — a "500 IBU" American-Style Amber
+-- Lager is not a real measurement — but that is a data-quality pass, not a job
+-- for a validation ceiling that would also reject real beers.
+-- ----------------------------------------------------------------------------

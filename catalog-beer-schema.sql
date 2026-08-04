@@ -87,7 +87,17 @@ CREATE TABLE `beer` (
   `beverage_type` enum('beer','cider','perry','mead') NOT NULL DEFAULT 'beer',
   `style_confidence` varchar(16) DEFAULT NULL,
   `description` text,
+  -- NOT NULL, so there is no "unknown ABV". A 0 here is ambiguous by
+  -- construction: it is either a genuine non-alcoholic beer or a placeholder
+  -- nobody filled in. The API validates 0 <= abv <= 99.9 and tracks the
+  -- ambiguity as the beer_abv_zero metric.
   `abv` decimal(4,1) NOT NULL,
+  -- Nullable, and the null is load-bearing: NULL means the bitterness was
+  -- never recorded, 0 means the beer has no measurable bitterness. Until
+  -- migrations/2026-08-04-ibu-zero-to-null.sql these were the same value —
+  -- the 2020 import wrote 0 as an unknown sentinel and the API's empty()
+  -- guard made a real 0 unwritable. Range is 0 to 1000; see that migration
+  -- for why the ceiling is not 200.
   `ibu` int DEFAULT NULL,
   `cbVerified` bit(1) NOT NULL DEFAULT b'0',
   `brewerVerified` bit(1) NOT NULL DEFAULT b'0',
