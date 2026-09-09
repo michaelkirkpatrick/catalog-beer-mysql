@@ -225,6 +225,50 @@ CREATE TABLE `brewer_review` (
   CONSTRAINT `fk_review_brewer` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- The review loop's queue of breweries the catalog does not hold: a name, a
+-- place and the page it was read on, researched later through the six steps
+-- instead of created thin now. Two stored states; "claimed" is derived from
+-- claimedAt within the 4h TTL. nameKey/urlHost are dedup keys, indexed but not
+-- unique. Closed rows are the negative cache. sources is every page that named
+-- it. needsDecision/question/decision mirror brewer_review for a pre-creation
+-- scope call. brewerID is ON DELETE SET NULL so a created lead never dangles.
+-- See migrations/2026-09-09-brewer-lead.sql
+CREATE TABLE `brewer_lead` (
+  `id` varchar(36) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `nameKey` varchar(255) NOT NULL,
+  `url` varchar(255) DEFAULT NULL,
+  `urlHost` varchar(255) DEFAULT NULL,
+  `city` varchar(100) DEFAULT NULL,
+  `sub_code` varchar(5) DEFAULT NULL,
+  `sourceUrl` varchar(255) NOT NULL,
+  `sources` json NOT NULL,
+  `note` text,
+  `status` enum('open','closed') NOT NULL DEFAULT 'open',
+  `resolution` enum('created','duplicate','not_a_brewery','out_of_scope') DEFAULT NULL,
+  `brewerID` varchar(36) DEFAULT NULL,
+  `recheckAfter` int DEFAULT NULL,
+  `createdBy` varchar(36) NOT NULL,
+  `createdAt` int NOT NULL,
+  `lastSeenAt` int NOT NULL,
+  `claimedBy` varchar(36) DEFAULT NULL,
+  `claimedAt` int DEFAULT NULL,
+  `resolvedBy` varchar(36) DEFAULT NULL,
+  `resolvedAt` int DEFAULT NULL,
+  `needsDecision` bit(1) NOT NULL DEFAULT b'0',
+  `question` varchar(500) DEFAULT NULL,
+  `decision` varchar(500) DEFAULT NULL,
+  `decidedAt` int DEFAULT NULL,
+  `decidedBy` varchar(36) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_lead_name` (`nameKey`,`sub_code`),
+  KEY `idx_lead_host` (`urlHost`),
+  KEY `idx_lead_claim` (`status`,`recheckAfter`,`createdAt`),
+  KEY `idx_lead_decision` (`needsDecision`,`createdAt`),
+  KEY `idx_lead_brewer` (`brewerID`),
+  CONSTRAINT `fk_lead_brewer` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE `error_log` (
   `id` varchar(36) NOT NULL,
   `errorNumber` varchar(255) DEFAULT NULL,
