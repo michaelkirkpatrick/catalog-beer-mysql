@@ -149,12 +149,20 @@ CREATE TABLE `brewer` (
   `urlDomainRegistered` date DEFAULT NULL,
   -- See migrations/2026-07-28-created-at.sql
   `createdAt` int NOT NULL DEFAULT '0',
+  -- The review queue, on the row. reviewedAt is set by POST /review/{id};
+  -- claimedBy/claimedAt are stamped by POST /review/claim and expire on the
+  -- read side after four hours. See migrations/2026-09-08-brewer-review.sql
+  `reviewedAt` int DEFAULT NULL,
+  `claimedBy` varchar(36) DEFAULT NULL,
+  `claimedAt` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_url` (`url`) USING BTREE,
   UNIQUE KEY `unique_domain` (`domainName`) USING BTREE,
   KEY `idx_url_check` (`urlCheckedAt`),
   KEY `idx_url_status` (`urlStatus`),
   KEY `idx_brewer_createdAt` (`createdAt`),
+  KEY `idx_brewer_reviewedAt` (`reviewedAt`),
+  KEY `idx_brewer_claimedAt` (`claimedAt`),
   FULLTEXT KEY `ft_brewer_search` (`name`,`description`,`shortDescription`),
   -- Name-only index: /brewer/search ranks name matches above description
   -- matches, which needs MATCH(name) on exactly this column set.
@@ -180,6 +188,41 @@ CREATE TABLE `brewer_url_history` (
   PRIMARY KEY (`id`),
   KEY `idx_bu_history_brewer` (`brewerID`,`changedAt`),
   CONSTRAINT `fk_bu_history_brewer` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- One row per completed review of one brewer by the review loop (six steps
+-- against the brewery's own site). Append-only. needsDecision rows are the
+-- human check-in list; sources and changes make a review auditable and
+-- hand-revertable. reviewer is a userID and deliberately not a foreign key:
+-- provenance outlives the account. See migrations/2026-09-08-brewer-review.sql
+CREATE TABLE `brewer_review` (
+  `id` varchar(36) NOT NULL,
+  `brewerID` varchar(36) NOT NULL,
+  `reviewedAt` int NOT NULL,
+  `reviewer` varchar(36) NOT NULL,
+  `briefVersion` varchar(40) DEFAULT NULL,
+  `outcome` enum('updated','unchanged','created','skipped','defunct','merged','deferred') NOT NULL,
+  `urlVerdict` enum('ok','cleared','replaced','unchecked') NOT NULL DEFAULT 'unchecked',
+  `brewerChanged` varchar(255) DEFAULT NULL,
+  `beersAdded` smallint unsigned NOT NULL DEFAULT '0',
+  `beersUpdated` smallint unsigned NOT NULL DEFAULT '0',
+  `dupesDeleted` smallint unsigned NOT NULL DEFAULT '0',
+  `locationsAdded` smallint unsigned NOT NULL DEFAULT '0',
+  `locationsUpdated` smallint unsigned NOT NULL DEFAULT '0',
+  `locationsDeleted` smallint unsigned NOT NULL DEFAULT '0',
+  `sources` json DEFAULT NULL,
+  `changes` json DEFAULT NULL,
+  `notes` text,
+  `needsDecision` bit(1) NOT NULL DEFAULT b'0',
+  `question` varchar(500) DEFAULT NULL,
+  `decision` varchar(500) DEFAULT NULL,
+  `decidedAt` int DEFAULT NULL,
+  `decidedBy` varchar(36) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_review_brewer` (`brewerID`,`reviewedAt`),
+  KEY `idx_review_decision` (`needsDecision`,`reviewedAt`),
+  KEY `idx_review_reviewedAt` (`reviewedAt`),
+  CONSTRAINT `fk_review_brewer` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `error_log` (
