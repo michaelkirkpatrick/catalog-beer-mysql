@@ -157,7 +157,12 @@ CREATE TABLE `brewer` (
   `claimedAt` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_url` (`url`) USING BTREE,
-  UNIQUE KEY `unique_domain` (`domainName`) USING BTREE,
+  -- Not unique: brewers may share a domain (one brewer per homepage, any
+  -- number of sub-pages -- an acquired brand on its owner's site). The rule
+  -- is enforced by the API's BrewerUrl::conflict(). Staff permissions come
+  -- from an email-domain match, so a shared domain shares staff by design.
+  -- See migrations/2026-09-24-brewer-shared-domain.sql
+  KEY `idx_brewer_domain` (`domainName`),
   KEY `idx_url_check` (`urlCheckedAt`),
   KEY `idx_url_status` (`urlStatus`),
   KEY `idx_brewer_createdAt` (`createdAt`),
