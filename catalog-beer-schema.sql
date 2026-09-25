@@ -217,7 +217,10 @@ CREATE TABLE `brewer_review` (
   `locationsDeleted` smallint unsigned NOT NULL DEFAULT '0',
   `sources` json DEFAULT NULL,
   `changes` json DEFAULT NULL,
-  `notes` text,
+  -- mediumtext, not text: the API caps notes at 20,000 characters and TEXT
+  -- holds 65,535 bytes, which a multibyte note can exceed while passing the
+  -- cap (error 1406 under STRICT_TRANS_TABLES, losing the audit row).
+  `notes` mediumtext,
   `needsDecision` bit(1) NOT NULL DEFAULT b'0',
   `question` varchar(500) DEFAULT NULL,
   `decision` varchar(500) DEFAULT NULL,
