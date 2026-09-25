@@ -216,7 +216,13 @@ CREATE TABLE `brewer_review` (
   `locationsUpdated` smallint unsigned NOT NULL DEFAULT '0',
   `locationsDeleted` smallint unsigned NOT NULL DEFAULT '0',
   `sources` json DEFAULT NULL,
+  -- Stored, not JSON_LENGTH() at read time: a list returns the counts in
+  -- place of the arrays, and a JSON-derived expression in the select list of
+  -- a filesorting query is declared wide enough to blow sort_buffer_size.
+  -- Set at INSERT; both arrays are immutable afterwards.
+  `sourcesCount` smallint unsigned NOT NULL DEFAULT '0',
   `changes` json DEFAULT NULL,
+  `changesCount` mediumint unsigned NOT NULL DEFAULT '0',
   -- mediumtext, not text: the API caps notes at 20,000 characters and TEXT
   -- holds 65,535 bytes, which a multibyte note can exceed while passing the
   -- cap (error 1406 under STRICT_TRANS_TABLES, losing the audit row).
