@@ -34,7 +34,8 @@ CREATE TABLE `api_logging` (
   `body` text,
   `response` text,
   `responseCode` int DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `idx_method_ts` (`method`,`timestamp`,`responseCode`,`apiKey`,`uri`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `api_usage` (
