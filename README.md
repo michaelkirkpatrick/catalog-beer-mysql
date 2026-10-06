@@ -27,6 +27,14 @@ The table exists because most of what it records has no history in the schema: `
 
 `createdAt` was added to `beer`, `brewer` and `location` in July 2026 for the same reason — before it, an edit overwrote the only date on the row, so growth over time was unmeasurable. It is backfilled from `lastModified`, which is exact for any row never edited since creation and an upper bound otherwise.
 
+## Brewer status and country
+
+`brewer.status` (`active`/`closed`) is the authoritative closure flag; `foundedYear` and `closedYear` are year-only because that is what sources state and nothing queries finer. A closure with an unknown year is `closed` with a NULL year, so the flag is never derived from the year. Two `CHECK` constraints back the API's validation: a `closedYear` needs `status = 'closed'`, and it cannot precede `foundedYear`.
+
+`brewer.countryCode` and `brewer_lead.countryCode` are ISO 3166-1 alpha-2, the same standard as `location.countryCode`. The brewer carries one because a brewer with no locations has no derivable country. A non-US lead is stored but never handed out by the claim queue, so the open non-US leads are the backlog for any expansion beyond the US.
+
+`sub_code` (ISO 3166-2) is `varchar(6)` in `subdivisions`, `US_addresses` and `brewer_lead`: the regional part runs to three characters (`GB-ENG`), and the foreign key needs both sides the same width.
+
 ## ZIP codes
 
 `US_addresses.zip5` and `.zip4` are `char(5)` / `char(4)`, not integers, with `CHECK` constraints enforcing the digit format. ZIP codes are fixed-width identifiers with significant leading zeros — 00501–09999 covers New England, New Jersey, Puerto Rico and the Virgin Islands — and nothing ever does arithmetic on one.

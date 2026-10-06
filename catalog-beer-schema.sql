@@ -133,6 +133,15 @@ CREATE TABLE `brewer` (
   `domainName` varchar(255) DEFAULT NULL,
   `cbVerified` bit(1) NOT NULL DEFAULT b'0',
   `brewerVerified` bit(1) NOT NULL DEFAULT b'0',
+  -- Operating status, year-only dates and country. status is the flag the
+  -- frontend, search, the URL cron and the location gate read; a closure
+  -- whose year is unknown is status=closed with closedYear NULL. countryCode
+  -- is ISO 3166-1 alpha-2 like location.countryCode.
+  -- See migrations/2026-10-05-brewer-status-country.sql
+  `status` enum('active','closed') NOT NULL DEFAULT 'active',
+  `foundedYear` smallint unsigned DEFAULT NULL,
+  `closedYear` smallint unsigned DEFAULT NULL,
+  `countryCode` char(2) NOT NULL DEFAULT 'US',
   `lastModified` int NOT NULL,
   -- URL health, written by the check-urls monitoring cron (report-only; see
   -- migrations/2026-07-28-brewer-url-status.sql for status meanings)
@@ -169,10 +178,13 @@ CREATE TABLE `brewer` (
   KEY `idx_brewer_createdAt` (`createdAt`),
   KEY `idx_brewer_reviewedAt` (`reviewedAt`),
   KEY `idx_brewer_claimedAt` (`claimedAt`),
+  KEY `idx_brewer_status` (`status`),
   FULLTEXT KEY `ft_brewer_search` (`name`,`description`,`shortDescription`),
   -- Name-only index: /brewer/search ranks name matches above description
   -- matches, which needs MATCH(name) on exactly this column set.
-  FULLTEXT KEY `ft_brewer_name` (`name`)
+  FULLTEXT KEY `ft_brewer_name` (`name`),
+  CONSTRAINT `chk_brewer_closed_year` CHECK (`closedYear` IS NULL OR `status` = 'closed'),
+  CONSTRAINT `chk_brewer_years` CHECK (`foundedYear` IS NULL OR `closedYear` IS NULL OR `closedYear` >= `foundedYear`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Append-only history of every change to brewer.url, written by
@@ -255,7 +267,11 @@ CREATE TABLE `brewer_lead` (
   `url` varchar(255) DEFAULT NULL,
   `urlHost` varchar(255) DEFAULT NULL,
   `city` varchar(100) DEFAULT NULL,
-  `sub_code` varchar(5) DEFAULT NULL,
+  -- ISO 3166-2 (six characters: GB-ENG) and ISO 3166-1 alpha-2. A non-US lead
+  -- is stored and never handed out by the claim queue: it is the backlog for
+  -- expansion, not a row to research now.
+  `sub_code` varchar(6) DEFAULT NULL,
+  `countryCode` char(2) NOT NULL DEFAULT 'US',
   `sourceUrl` varchar(255) NOT NULL,
   `sources` json NOT NULL,
   `note` text,
@@ -281,6 +297,7 @@ CREATE TABLE `brewer_lead` (
   KEY `idx_lead_claim` (`status`,`recheckAfter`,`createdAt`),
   KEY `idx_lead_decision` (`needsDecision`,`createdAt`),
   KEY `idx_lead_brewer` (`brewerID`),
+  KEY `idx_lead_country` (`countryCode`,`status`),
   CONSTRAINT `fk_lead_brewer` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -347,7 +364,8 @@ CREATE TABLE `privileges` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `subdivisions` (
-  `sub_code` varchar(5) NOT NULL,
+  -- ISO 3166-2: country, hyphen, up to three characters (US-CA, GB-ENG)
+  `sub_code` varchar(6) NOT NULL,
   `sub_name` varchar(255) NOT NULL,
   PRIMARY KEY (`sub_code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -357,7 +375,7 @@ CREATE TABLE `US_addresses` (
   `address1` varchar(255) DEFAULT NULL,
   `address2` varchar(255) NOT NULL,
   `city` varchar(255) NOT NULL,
-  `sub_code` varchar(5) NOT NULL,
+  `sub_code` varchar(6) NOT NULL,
   `zip5` char(5) NOT NULL,
   `zip4` char(4) DEFAULT NULL,
   `telephone` bigint DEFAULT NULL,
