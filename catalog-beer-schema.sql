@@ -364,27 +364,44 @@ CREATE TABLE `privileges` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `subdivisions` (
-  -- ISO 3166-2: country, hyphen, up to three characters (US-CA, GB-ENG)
+  -- ISO 3166-2: country, hyphen, up to three characters (US-CA, GB-ENG).
+  -- Seeded for the 40 Google Address Validation regions at the level Google
+  -- reports as an administrative area; names in the local official form.
+  -- See migrations/2026-10-13-international-addresses.sql
   `sub_code` varchar(6) NOT NULL,
+  `countryCode` char(2) NOT NULL DEFAULT 'US',
   `sub_name` varchar(255) NOT NULL,
-  PRIMARY KEY (`sub_code`)
+  `sub_type` varchar(32) DEFAULT NULL,
+  `parentCode` varchar(6) DEFAULT NULL,
+  PRIMARY KEY (`sub_code`),
+  KEY `idx_sub_country` (`countryCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-CREATE TABLE `US_addresses` (
+CREATE TABLE `address` (
+  -- One table for every country; US rules live in the two countryCode='US'
+  -- CHECKs. telephone is E.164; formatted is a JSON array of display lines in
+  -- the country's own order. See migrations/2026-10-13-international-addresses.sql
   `locationID` varchar(36) NOT NULL,
-  `address1` varchar(255) DEFAULT NULL,
-  `address2` varchar(255) NOT NULL,
-  `city` varchar(255) NOT NULL,
-  `sub_code` varchar(6) NOT NULL,
-  `zip5` char(5) NOT NULL,
-  `zip4` char(4) DEFAULT NULL,
-  `telephone` bigint DEFAULT NULL,
+  `countryCode` char(2) NOT NULL,
+  `line1` varchar(255) NOT NULL,
+  `line2` varchar(255) DEFAULT NULL,
+  `locality` varchar(255) NOT NULL,
+  `dependentLocality` varchar(255) DEFAULT NULL,
+  `sub_code` varchar(6) DEFAULT NULL,
+  `postalCode` varchar(20) DEFAULT NULL,
+  `formatted` json DEFAULT NULL,
+  `languageCode` varchar(8) DEFAULT NULL,
+  `telephone` varchar(16) DEFAULT NULL,
+  `validation` enum('validated','geocoded','unverified') NOT NULL DEFAULT 'unverified',
+  `validatedAt` int DEFAULT NULL,
   PRIMARY KEY (`locationID`),
-  KEY `fk_sub_code` (`sub_code`),
-  CONSTRAINT `fk_locationID` FOREIGN KEY (`locationID`) REFERENCES `location` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_sub_code` FOREIGN KEY (`sub_code`) REFERENCES `subdivisions` (`sub_code`) ON DELETE CASCADE,
-  CONSTRAINT `chk_zip5_format` CHECK (`zip5` REGEXP '^[0-9]{5}$'),
-  CONSTRAINT `chk_zip4_format` CHECK (`zip4` IS NULL OR `zip4` REGEXP '^[0-9]{4}$')
+  KEY `idx_address_country_sub` (`countryCode`,`sub_code`),
+  KEY `idx_address_postal` (`countryCode`,`postalCode`),
+  CONSTRAINT `fk_address_location` FOREIGN KEY (`locationID`) REFERENCES `location` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_address_sub_code` FOREIGN KEY (`sub_code`) REFERENCES `subdivisions` (`sub_code`),
+  CONSTRAINT `chk_address_us_sub` CHECK (`countryCode` <> 'US' OR `sub_code` IS NOT NULL),
+  CONSTRAINT `chk_address_us_postal` CHECK (`countryCode` <> 'US' OR `postalCode` REGEXP '^[0-9]{5}(-[0-9]{4})?$'),
+  CONSTRAINT `chk_address_tel` CHECK (`telephone` IS NULL OR `telephone` REGEXP '^\\+[1-9][0-9]{6,14}$')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `users` (

@@ -33,11 +33,21 @@ The table exists because most of what it records has no history in the schema: `
 
 `brewer.countryCode` and `brewer_lead.countryCode` are ISO 3166-1 alpha-2, the same standard as `location.countryCode`. The brewer carries one because a brewer with no locations has no derivable country. A non-US lead is stored but never handed out by the claim queue, so the open non-US leads are the backlog for any expansion beyond the US.
 
-`sub_code` (ISO 3166-2) is `varchar(6)` in `subdivisions`, `US_addresses` and `brewer_lead`: the regional part runs to three characters (`GB-ENG`), and the foreign key needs both sides the same width.
+`sub_code` (ISO 3166-2) is `varchar(6)` in `subdivisions`, `address` and `brewer_lead`: the regional part runs to three characters (`GB-ENG`), and the foreign key needs both sides the same width.
 
-## ZIP codes
+## Addresses
 
-`US_addresses.zip5` and `.zip4` are `char(5)` / `char(4)`, not integers, with `CHECK` constraints enforcing the digit format. ZIP codes are fixed-width identifiers with significant leading zeros — 00501–09999 covers New England, New Jersey, Puerto Rico and the Virgin Islands — and nothing ever does arithmetic on one.
+`address` is one table for every country (October 2026; it replaced `US_addresses`, see `migrations/2026-10-13-international-addresses.sql`). The columns follow the vocabulary of Google's `postalAddress`: `line1` (street), `line2` (unit), `locality`, `dependentLocality`, `sub_code`, `postalCode`, plus `formatted` (a JSON array of display lines in the country's own order, without the country name), `languageCode`, and `validation` (`validated` / `geocoded` / `unverified`), which says how sure the record is. `countryCode` always equals the location's; the API refuses a country change on a location that holds an address.
+
+The US rules that used to be column types are now two `CHECK` constraints that apply only when `countryCode = 'US'`: a `sub_code` is required, and `postalCode` must be `NNNNN` or `NNNNN-NNNN`. Outside the US a subdivision is optional (Brussels has no province) and the postal code is whatever Google validated (`8640`, `1018 AL`, `SW1A 1AA`).
+
+`telephone` is an E.164 string (`+15035550100`, `+3257400376`), checked by a `CHECK`. A bigint of ten NANP digits could not hold a Belgian number, and a bare digit string is ambiguous (3257400376 is both +32 57 40 03 76 and a Texas number); the `+` is what says "international form".
+
+`subdivisions` is seeded from ISO 3166-2 for the 40 regions Google Address Validation covers, at the level Google reports as an administrative area, with `countryCode`, `sub_type` (state, province, region, canton, ...) and `parentCode` (Belgian provinces sit under regions). Names are the local official form (`West-Vlaanderen`, `Bayern`).
+
+## Postal codes
+
+Postal codes are identifiers, never numbers: `address.postalCode` is `varchar(20)`. ZIP codes in particular have significant leading zeros — 00501–09999 covers New England, New Jersey, Puerto Rico and the Virgin Islands — and nothing ever does arithmetic on one.
 
 ## See Also
 
