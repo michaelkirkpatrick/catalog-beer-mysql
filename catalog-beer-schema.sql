@@ -323,6 +323,22 @@ CREATE TABLE `location` (
   `name` varchar(255) DEFAULT NULL,
   `url` varchar(255) DEFAULT NULL,
   `countryCode` varchar(2) NOT NULL,
+  -- The address, nullable as a block: NULL line1 means no address on file.
+  -- One vocabulary for every country (Google's postalAddress); the US rules
+  -- and the telephone shape are CHECKs below. See
+  -- migrations/2026-10-13-international-addresses.sql and
+  -- migrations/2026-10-17-location-address-merge.sql
+  `line1` varchar(255) DEFAULT NULL,
+  `line2` varchar(255) DEFAULT NULL,
+  `locality` varchar(255) DEFAULT NULL,
+  `dependentLocality` varchar(255) DEFAULT NULL,
+  `sub_code` varchar(6) DEFAULT NULL,
+  `postalCode` varchar(20) DEFAULT NULL,
+  `formatted` json DEFAULT NULL,
+  `languageCode` varchar(8) DEFAULT NULL,
+  `telephone` varchar(16) DEFAULT NULL,
+  `validation` enum('validated','geocoded','unverified') DEFAULT NULL,
+  `validatedAt` int DEFAULT NULL,
   `latitude` float(9,7) DEFAULT NULL,
   `longitude` float(10,7) DEFAULT NULL,
   `cbVerified` bit(1) NOT NULL DEFAULT b'0',
@@ -333,16 +349,16 @@ CREATE TABLE `location` (
   PRIMARY KEY (`id`),
   KEY `fk_brewerID` (`brewerID`),
   KEY `idx_location_createdAt` (`createdAt`),
-  CONSTRAINT `fk_brewerID` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE
+  KEY `idx_location_country_sub` (`countryCode`,`sub_code`),
+  KEY `idx_location_postal` (`countryCode`,`postalCode`),
+  CONSTRAINT `fk_brewerID` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_location_sub_code` FOREIGN KEY (`sub_code`) REFERENCES `subdivisions` (`sub_code`),
+  CONSTRAINT `chk_location_address` CHECK ((`line1` IS NULL) = (`locality` IS NULL) AND (`line1` IS NULL) = (`validation` IS NULL)),
+  CONSTRAINT `chk_location_us_sub` CHECK (`line1` IS NULL OR `countryCode` <> 'US' OR `sub_code` IS NOT NULL),
+  CONSTRAINT `chk_location_us_postal` CHECK (`line1` IS NULL OR `countryCode` <> 'US' OR `postalCode` REGEXP '^[0-9]{5}(-[0-9]{4})?$'),
+  CONSTRAINT `chk_location_tel` CHECK (`telephone` IS NULL OR `telephone` REGEXP '^\\+[1-9][0-9]{6,14}$')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Daily catalog-health snapshots, written by catalog-beer-api
--- cron/snapshot-metrics.php. Narrow by design — (date, metric, dimension,
--- value) rather than a column per metric — so adding a metric never needs a
--- migration. Values are raw counts; ratios and composite "health scores" are
--- computed at display time so the formula can change without invalidating
--- stored history. `dimension` is '' for a plain scalar or a bucket name for a
--- grouped metric (brewer_url_status/parked, beer_beverage_type/cider, …).
 CREATE TABLE `metrics_daily` (
   `snapshotDate` date NOT NULL,
   `metric` varchar(64) NOT NULL,
@@ -375,33 +391,6 @@ CREATE TABLE `subdivisions` (
   `parentCode` varchar(6) DEFAULT NULL,
   PRIMARY KEY (`sub_code`),
   KEY `idx_sub_country` (`countryCode`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
-CREATE TABLE `address` (
-  -- One table for every country; US rules live in the two countryCode='US'
-  -- CHECKs. telephone is E.164; formatted is a JSON array of display lines in
-  -- the country's own order. See migrations/2026-10-13-international-addresses.sql
-  `locationID` varchar(36) NOT NULL,
-  `countryCode` char(2) NOT NULL,
-  `line1` varchar(255) NOT NULL,
-  `line2` varchar(255) DEFAULT NULL,
-  `locality` varchar(255) NOT NULL,
-  `dependentLocality` varchar(255) DEFAULT NULL,
-  `sub_code` varchar(6) DEFAULT NULL,
-  `postalCode` varchar(20) DEFAULT NULL,
-  `formatted` json DEFAULT NULL,
-  `languageCode` varchar(8) DEFAULT NULL,
-  `telephone` varchar(16) DEFAULT NULL,
-  `validation` enum('validated','geocoded','unverified') NOT NULL DEFAULT 'unverified',
-  `validatedAt` int DEFAULT NULL,
-  PRIMARY KEY (`locationID`),
-  KEY `idx_address_country_sub` (`countryCode`,`sub_code`),
-  KEY `idx_address_postal` (`countryCode`,`postalCode`),
-  CONSTRAINT `fk_address_location` FOREIGN KEY (`locationID`) REFERENCES `location` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_address_sub_code` FOREIGN KEY (`sub_code`) REFERENCES `subdivisions` (`sub_code`),
-  CONSTRAINT `chk_address_us_sub` CHECK (`countryCode` <> 'US' OR `sub_code` IS NOT NULL),
-  CONSTRAINT `chk_address_us_postal` CHECK (`countryCode` <> 'US' OR `postalCode` REGEXP '^[0-9]{5}(-[0-9]{4})?$'),
-  CONSTRAINT `chk_address_tel` CHECK (`telephone` IS NULL OR `telephone` REGEXP '^\\+[1-9][0-9]{6,14}$')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `users` (
