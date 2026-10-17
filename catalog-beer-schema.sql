@@ -337,7 +337,6 @@ CREATE TABLE `location` (
   `formatted` json DEFAULT NULL,
   `languageCode` varchar(8) DEFAULT NULL,
   `telephone` varchar(16) DEFAULT NULL,
-  `validation` enum('validated','geocoded','unverified') DEFAULT NULL,
   `validatedAt` int DEFAULT NULL,
   `latitude` float(9,7) DEFAULT NULL,
   `longitude` float(10,7) DEFAULT NULL,
@@ -353,7 +352,7 @@ CREATE TABLE `location` (
   KEY `idx_location_postal` (`countryCode`,`postalCode`),
   CONSTRAINT `fk_brewerID` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_location_sub_code` FOREIGN KEY (`sub_code`) REFERENCES `subdivisions` (`sub_code`),
-  CONSTRAINT `chk_location_address` CHECK ((`line1` IS NULL) = (`locality` IS NULL) AND (`line1` IS NULL) = (`validation` IS NULL)),
+  CONSTRAINT `chk_location_address` CHECK ((`line1` IS NULL) = (`locality` IS NULL)),
   CONSTRAINT `chk_location_us_sub` CHECK (`line1` IS NULL OR `countryCode` <> 'US' OR `sub_code` IS NOT NULL),
   CONSTRAINT `chk_location_us_postal` CHECK (`line1` IS NULL OR `countryCode` <> 'US' OR `postalCode` REGEXP '^[0-9]{5}(-[0-9]{4})?$'),
   CONSTRAINT `chk_location_tel` CHECK (`telephone` IS NULL OR `telephone` REGEXP '^\\+[1-9][0-9]{6,14}$')

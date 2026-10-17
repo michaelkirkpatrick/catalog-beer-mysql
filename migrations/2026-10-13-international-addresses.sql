@@ -29,10 +29,8 @@
 --                     digit string is ambiguous: 3257400376 is both +32 57 40
 --                     03 76 and a Texas number. The '+' is what says
 --                     "international form", and only a string can carry it.
---   validation        how sure the record is: 'validated' (Google Address
---                     Validation accepted it at building level), 'geocoded'
---                     (reserved for countries outside Google's coverage),
---                     'unverified' (stored as typed)
+--   validatedAt       when the validator last accepted it (NULL for the copied
+--                     US rows, whose check predates the column)
 --   countryCode       always equals location.countryCode; denormalized so the
 --                     facet and metric queries need no JOIN. The API refuses a
 --                     country change on a location that holds an address, so
@@ -67,7 +65,6 @@ CREATE TABLE `address` (
   `formatted`         json         DEFAULT NULL,
   `languageCode`      varchar(8)   DEFAULT NULL,
   `telephone`         varchar(16)  DEFAULT NULL,
-  `validation`        enum('validated','geocoded','unverified') NOT NULL DEFAULT 'unverified',
   `validatedAt`       int          DEFAULT NULL,
   PRIMARY KEY (`locationID`),
   KEY `idx_address_country_sub` (`countryCode`,`sub_code`),
@@ -91,7 +88,7 @@ UPDATE `subdivisions` SET `sub_type` = IF(`sub_code` = 'US-DC', 'district', 'sta
 -- become '+1' + digits; formatted is built from the fields in US order so
 -- every row carries display lines from day one.
 INSERT INTO `address`
-  (`locationID`, `countryCode`, `line1`, `line2`, `locality`, `dependentLocality`, `sub_code`, `postalCode`, `formatted`, `languageCode`, `telephone`, `validation`, `validatedAt`)
+  (`locationID`, `countryCode`, `line1`, `line2`, `locality`, `dependentLocality`, `sub_code`, `postalCode`, `formatted`, `languageCode`, `telephone`, `validatedAt`)
 SELECT
   `locationID`,
   'US',
@@ -106,7 +103,6 @@ SELECT
      JSON_ARRAY(`address2`, `address1`, CONCAT(`city`, ', ', SUBSTRING(`sub_code`, 4), ' ', `zip5`, IF(`zip4` IS NULL OR `zip4` = '', '', CONCAT('-', `zip4`))))),
   'en',
   IF(`telephone` IS NULL OR `telephone` = 0, NULL, CONCAT('+1', LPAD(`telephone`, 10, '0'))),
-  'validated',
   NULL
 FROM `US_addresses`;
 

@@ -1,4 +1,4 @@
--- Fold the address into the location: the eleven address columns move onto
+-- Fold the address into the location: the ten address columns move onto
 -- `location`, `address` is dropped. Run AFTER 2026-10-13-international-addresses.sql
 -- (which created `address` and copied US_addresses into it); on a database
 -- that has not run that one yet, run both in order.
@@ -13,9 +13,9 @@
 -- "pending location" held in the session. One row makes the create atomic:
 -- an address the validator refuses means no location is written.
 --
--- A location without an address is still legal (validation IS NULL, line1 IS
--- NULL). The US rules and the telephone shape are CHECKs that apply only when
--- a street is present, so the no-address state never trips them.
+-- A location without an address is still legal (line1 IS NULL). The US rules
+-- and the telephone shape are CHECKs that apply only when a street is
+-- present, so the no-address state never trips them.
 
 ALTER TABLE `location`
   ADD COLUMN `line1`             varchar(255) DEFAULT NULL AFTER `countryCode`,
@@ -27,12 +27,11 @@ ALTER TABLE `location`
   ADD COLUMN `formatted`         json         DEFAULT NULL AFTER `postalCode`,
   ADD COLUMN `languageCode`      varchar(8)   DEFAULT NULL AFTER `formatted`,
   ADD COLUMN `telephone`         varchar(16)  DEFAULT NULL AFTER `languageCode`,
-  ADD COLUMN `validation`        enum('validated','geocoded','unverified') DEFAULT NULL AFTER `telephone`,
-  ADD COLUMN `validatedAt`       int          DEFAULT NULL AFTER `validation`,
+  ADD COLUMN `validatedAt`       int          DEFAULT NULL AFTER `telephone`,
   ADD KEY `idx_location_country_sub` (`countryCode`,`sub_code`),
   ADD KEY `idx_location_postal` (`countryCode`,`postalCode`),
   ADD CONSTRAINT `fk_location_sub_code` FOREIGN KEY (`sub_code`) REFERENCES `subdivisions` (`sub_code`),
-  ADD CONSTRAINT `chk_location_address` CHECK ((`line1` IS NULL) = (`locality` IS NULL) AND (`line1` IS NULL) = (`validation` IS NULL)),
+  ADD CONSTRAINT `chk_location_address` CHECK ((`line1` IS NULL) = (`locality` IS NULL)),
   ADD CONSTRAINT `chk_location_us_sub` CHECK (`line1` IS NULL OR `countryCode` <> 'US' OR `sub_code` IS NOT NULL),
   ADD CONSTRAINT `chk_location_us_postal` CHECK (`line1` IS NULL OR `countryCode` <> 'US' OR `postalCode` REGEXP '^[0-9]{5}(-[0-9]{4})?$'),
   ADD CONSTRAINT `chk_location_tel` CHECK (`telephone` IS NULL OR `telephone` REGEXP '^\\+[1-9][0-9]{6,14}$');
@@ -47,7 +46,6 @@ UPDATE `location` l JOIN `address` a ON a.`locationID` = l.`id` SET
   l.`formatted` = a.`formatted`,
   l.`languageCode` = a.`languageCode`,
   l.`telephone` = a.`telephone`,
-  l.`validation` = a.`validation`,
   l.`validatedAt` = a.`validatedAt`;
 
 DROP TABLE `address`;

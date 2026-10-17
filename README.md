@@ -37,7 +37,7 @@ The table exists because most of what it records has no history in the schema: `
 
 ## Addresses
 
-`address` is one table for every country (October 2026; it replaced `US_addresses`, see `migrations/2026-10-13-international-addresses.sql`). The columns follow the vocabulary of Google's `postalAddress`: `line1` (street), `line2` (unit), `locality`, `dependentLocality`, `sub_code`, `postalCode`, plus `formatted` (a JSON array of display lines in the country's own order, without the country name), `languageCode`, and `validation` (`validated` / `geocoded` / `unverified`), which says how sure the record is. `countryCode` always equals the location's; the API refuses a country change on a location that holds an address.
+`address` is one table for every country (October 2026; it replaced `US_addresses`, see `migrations/2026-10-13-international-addresses.sql`). The columns follow the vocabulary of Google's `postalAddress`: `line1` (street), `line2` (unit), `locality`, `dependentLocality`, `sub_code`, `postalCode`, plus `formatted` (a JSON array of display lines in the country's own order, without the country name), `languageCode` and `validatedAt`, when the validator last accepted it. `countryCode` always equals the location's; the API refuses a country change on a location that holds an address.
 
 The US rules that used to be column types are now two `CHECK` constraints that apply only when `countryCode = 'US'`: a `sub_code` is required, and `postalCode` must be `NNNNN` or `NNNNN-NNNN`. Outside the US a subdivision is optional (Brussels has no province) and the postal code is whatever Google validated (`8640`, `1018 AL`, `SW1A 1AA`).
 
