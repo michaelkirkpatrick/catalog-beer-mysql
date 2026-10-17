@@ -33,7 +33,7 @@
 --                     Validation accepted it at building level), 'geocoded'
 --                     (reserved for countries outside Google's coverage),
 --                     'unverified' (stored as typed)
---   countryCode       always equals location.countryCode; denormalised so the
+--   countryCode       always equals location.countryCode; denormalized so the
 --                     facet and metric queries need no JOIN. The API refuses a
 --                     country change on a location that holds an address, so
 --                     the two cannot drift.

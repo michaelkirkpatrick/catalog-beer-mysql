@@ -154,7 +154,7 @@ CREATE TABLE `brewer` (
   -- See migrations/2026-08-02-brewer-url-history.sql
   `urlLastKnown` varchar(255) DEFAULT NULL,
   -- RDAP registration date of the URL's domain. Later than createdAt means the
-  -- domain lapsed and changed hands since we catalogued the brewery.
+  -- domain lapsed and changed hands since we cataloged the brewery.
   -- See migrations/2026-08-02-brewer-url-domain-registered.sql
   `urlDomainRegistered` date DEFAULT NULL,
   -- See migrations/2026-07-28-created-at.sql
@@ -437,16 +437,16 @@ CREATE TABLE `style` (
   -- canonical_name + every style_alias row, as one FULLTEXT document. Lets
   -- GET /style/search score identity terms against a single corpus, and is the
   -- only reason "IPA" can reach styles whose names spell out "India Pale Ale".
-  -- Denormalised: rebuild with migrations/rebuild-style-search-name.sql after
+  -- Denormalized: rebuild with migrations/rebuild-style-search-name.sql after
   -- every vocabulary reseed, or search silently goes stale.
   `search_name` text,
   `beverage_type` enum('beer','cider','perry','mead') NOT NULL DEFAULT 'beer',
   `parent` varchar(64) NOT NULL,
   `source` varchar(32) NOT NULL,
   `is_catch_all` tinyint(1) NOT NULL DEFAULT '0',
-  -- Catalogued beers using this style. A ranking tiebreaker for
+  -- Cataloged beers using this style. A ranking tiebreaker for
   -- GET /style/search, so styles no beer uses stop outranking styles thousands
-  -- of beers use. Denormalised and stale by design; refresh with
+  -- of beers use. Denormalized and stale by design; refresh with
   -- migrations/refresh-style-beer-count.sql on the sitemap cron's cadence.
   `beer_count` int NOT NULL DEFAULT '0',
   `abv_min` decimal(4,1) DEFAULT NULL,

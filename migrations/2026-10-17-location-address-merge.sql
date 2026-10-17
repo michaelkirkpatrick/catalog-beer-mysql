@@ -7,7 +7,7 @@
 -- location's id, so the separate table was a 1:1 row, not a relationship. It
 -- dated from a plan for one address table per country that the
 -- international-addresses work made unnecessary. Two rows for one fact cost
--- a denormalised countryCode that had to be guarded against drifting, a JOIN
+-- a denormalized countryCode that had to be guarded against drifting, a JOIN
 -- in every read, and -- on the API -- a second write request that could fail
 -- after the first had succeeded, which the frontend papered over with a
 -- "pending location" held in the session. One row makes the create atomic:
