@@ -114,6 +114,7 @@ CREATE TABLE `beer` (
   KEY `idx_class` (`class`),
   KEY `fk_beer_style` (`style_id`),
   KEY `idx_beer_createdAt` (`createdAt`),
+  KEY `idx_beer_lastModified` (`lastModified`),
   FULLTEXT KEY `ft_beer_search` (`name`,`style`,`description`),
   -- Name-only index: /beer/search ranks name matches above description/style
   -- matches, which needs MATCH(name) on exactly this column set.
@@ -179,6 +180,7 @@ CREATE TABLE `brewer` (
   KEY `idx_brewer_reviewedAt` (`reviewedAt`),
   KEY `idx_brewer_claimedAt` (`claimedAt`),
   KEY `idx_brewer_status` (`status`),
+  KEY `idx_brewer_lastModified` (`lastModified`),
   FULLTEXT KEY `ft_brewer_search` (`name`,`description`,`shortDescription`),
   -- Name-only index: /brewer/search ranks name matches above description
   -- matches, which needs MATCH(name) on exactly this column set.
@@ -348,6 +350,7 @@ CREATE TABLE `location` (
   PRIMARY KEY (`id`),
   KEY `fk_brewerID` (`brewerID`),
   KEY `idx_location_createdAt` (`createdAt`),
+  KEY `idx_location_lastModified` (`lastModified`),
   KEY `idx_location_country_sub` (`countryCode`,`sub_code`),
   KEY `idx_location_postal` (`countryCode`,`postalCode`),
   CONSTRAINT `fk_brewerID` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE,

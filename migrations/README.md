@@ -14,6 +14,7 @@ Each file is dated the day it was written. Its header says what it does, why, an
 | `2026-10-20-drop-location-validation.sql` | 2026-10-20 | **never: staging-only repair** |
 | `2026-10-17-post.sql` | 2026-10-20 | 2026-10-20 |
 | `2026-10-XX-drop-us-addresses.sql` | pending (after the soak) | pending (after the soak) |
+| `2026-10-20-last-modified-index.sql` | pending | pending |
 
 Production backup before the 6.0 window: `/home/claude/backup-pre-6.0-2026-10-20.sql` on production-2604 (345 MB, 25 tables, `claude` 0600; taken with the wrapper `/home/claude/cbdb.sh`, which loads the API vhost's own DB credentials into the shell). Production as checked on 2026-10-20 before the run (read-only, as `claude`): `US_addresses` present, no `address` table, no address columns on `location`, `subdivisions` without `countryCode` (51 US rows), 1,501 locations, every one with a `US_addresses` row and a numbered street, and 1 with no coordinates.
 
@@ -45,3 +46,11 @@ The API 6.0 code reads the address from `location` and rejects the pre-6.0 shape
 2. **Deploy the API, then the frontend.** Until the API serves `/post`, `/news` and `/changelog` render their empty state instead of failing.
 3. **Import the first posts.** The frontend's `scratch/changelog-import/import-posts.php send https://api.catalog.beer <admin-key> --publish` posts every release through v5.4.0 plus the three old `/whats-new` articles. It uses the API, so it runs after step 2. A 409 means the post is already there, so a re-run only adds what is missing.
 4. **Write the 6.0 release post** in `/admin/posts`. The import stops at v5.4.0.
+
+## Production: `modified_since` (API 6.1)
+
+`2026-10-20-last-modified-index.sql` adds an index on `lastModified` to `brewer`, `beer` and `location` for the `?modified_since` filter on the three list endpoints. It is an index only: the API runs without it (the filter is then a full scan on every sync request), so the order against the deploy does not matter, but run it first so the first sync requests are already cheap. In-place online DDL, no table copy; seconds on 58k beers.
+
+1. **Run `2026-10-20-last-modified-index.sql`** on staging, then production.
+2. **Check:** `SHOW INDEX FROM beer WHERE Key_name = 'idx_beer_lastModified'` returns one row, and the same for `idx_brewer_lastModified` on `brewer` and `idx_location_lastModified` on `location`.
+3. **Deploy the API** (6.1.0). `tests/modified-since.php` in the API repo asserts the index is in the canonical schema.
