@@ -9,13 +9,13 @@ Each file is dated the day it was written. Its header says what it does, why, an
 | Migration | Staging | Production |
 |---|---|---|
 | everything through `2026-10-05-brewer-status-country.sql` | applied | applied |
-| `2026-10-13-international-addresses.sql` | 2026-10-17, original version (had `validation`) | **pending** |
-| `2026-10-17-location-address-merge.sql` | 2026-10-17, original version (had `validation`) | **pending** |
+| `2026-10-13-international-addresses.sql` | 2026-10-17, original version (had `validation`) | 2026-10-20 (as `claude`; 1,501 rows copied, 1,133 subdivisions) |
+| `2026-10-17-location-address-merge.sql` | 2026-10-17, original version (had `validation`) | 2026-10-20 (1,501 locations with `line1`; no `validation` column) |
 | `2026-10-20-drop-location-validation.sql` | 2026-10-20 | **never: staging-only repair** |
-| `2026-10-17-post.sql` | 2026-10-20 | **pending** |
+| `2026-10-17-post.sql` | 2026-10-20 | 2026-10-20 |
 | `2026-10-XX-drop-us-addresses.sql` | pending (after the soak) | pending (after the soak) |
 
-Production as checked on 2026-10-20 (read-only, as `claude`): `US_addresses` present, no `address` table, no address columns on `location`, `subdivisions` without `countryCode` (51 US rows), 1,501 locations, every one with a `US_addresses` row and a numbered street, and 1 with no coordinates.
+Production backup before the 6.0 window: `/home/claude/backup-pre-6.0-2026-10-20.sql` on production-2604 (345 MB, 25 tables, `claude` 0600; taken with the wrapper `/home/claude/cbdb.sh`, which loads the API vhost's own DB credentials into the shell). Production as checked on 2026-10-20 before the run (read-only, as `claude`): `US_addresses` present, no `address` table, no address columns on `location`, `subdivisions` without `countryCode` (51 US rows), 1,501 locations, every one with a `US_addresses` row and a numbered street, and 1 with no coordinates.
 
 ## Production: API 6.0 (international addresses, address required)
 
