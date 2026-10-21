@@ -28,7 +28,7 @@ The API 6.0 code reads the address from `location` and rejects the pre-6.0 shape
    - `SELECT COUNT(*) FROM location WHERE line1 IS NOT NULL` equals the step 2 count.
    - `SHOW CREATE TABLE location` matches `catalog-beer-schema.sql`: no `validation` column, and `chk_location_address` is `(line1 IS NULL) = (locality IS NULL)`.
    - `SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'location' AND COLUMN_NAME = 'validation'` returns 0. If it returns 1, an old copy of the file was run: run `2026-10-20-drop-location-validation.sql`.
-4. **Deploy the API** (`./deploy.sh production`, from the merged branch). Then push the Algolia settings (`php algolia/settings.php production`) for the `regions` facet.
+4. **Deploy the API** (`./deploy.sh production`, from `main`; `international-addresses` was merged on 2026-10-20). Then push the Algolia settings (`php algolia/settings.php production`) for the `regions` facet.
 5. **Deploy the frontend** in the same window.
 6. **Smoke test.** `GET /location/{id}` returns the nested `address`. A `POST /location` with an address returns 201. One without an address returns 400 with "Every location needs its address".
 7. **Re-save the Algolia records** (locations, brewers, beers), since pushing settings never re-indexes them.
