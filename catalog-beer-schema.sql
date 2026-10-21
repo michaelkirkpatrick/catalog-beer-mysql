@@ -154,7 +154,7 @@ CREATE TABLE `brewer` (
   -- See migrations/2026-08-02-brewer-url-history.sql
   `urlLastKnown` varchar(255) DEFAULT NULL,
   -- RDAP registration date of the URL's domain. Later than createdAt means the
-  -- domain lapsed and changed hands since we catalogued the brewery.
+  -- domain lapsed and changed hands since we cataloged the brewery.
   -- See migrations/2026-08-02-brewer-url-domain-registered.sql
   `urlDomainRegistered` date DEFAULT NULL,
   -- See migrations/2026-07-28-created-at.sql
@@ -323,6 +323,21 @@ CREATE TABLE `location` (
   `name` varchar(255) DEFAULT NULL,
   `url` varchar(255) DEFAULT NULL,
   `countryCode` varchar(2) NOT NULL,
+  -- The address, nullable as a block: NULL line1 means no address on file.
+  -- One vocabulary for every country (Google's postalAddress); the US rules
+  -- and the telephone shape are CHECKs below. See
+  -- migrations/2026-10-13-international-addresses.sql and
+  -- migrations/2026-10-17-location-address-merge.sql
+  `line1` varchar(255) DEFAULT NULL,
+  `line2` varchar(255) DEFAULT NULL,
+  `locality` varchar(255) DEFAULT NULL,
+  `dependentLocality` varchar(255) DEFAULT NULL,
+  `sub_code` varchar(6) DEFAULT NULL,
+  `postalCode` varchar(20) DEFAULT NULL,
+  `formatted` json DEFAULT NULL,
+  `languageCode` varchar(8) DEFAULT NULL,
+  `telephone` varchar(16) DEFAULT NULL,
+  `validatedAt` int DEFAULT NULL,
   `latitude` float(9,7) DEFAULT NULL,
   `longitude` float(10,7) DEFAULT NULL,
   `cbVerified` bit(1) NOT NULL DEFAULT b'0',
@@ -333,16 +348,16 @@ CREATE TABLE `location` (
   PRIMARY KEY (`id`),
   KEY `fk_brewerID` (`brewerID`),
   KEY `idx_location_createdAt` (`createdAt`),
-  CONSTRAINT `fk_brewerID` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE
+  KEY `idx_location_country_sub` (`countryCode`,`sub_code`),
+  KEY `idx_location_postal` (`countryCode`,`postalCode`),
+  CONSTRAINT `fk_brewerID` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_location_sub_code` FOREIGN KEY (`sub_code`) REFERENCES `subdivisions` (`sub_code`),
+  CONSTRAINT `chk_location_address` CHECK ((`line1` IS NULL) = (`locality` IS NULL)),
+  CONSTRAINT `chk_location_us_sub` CHECK (`line1` IS NULL OR `countryCode` <> 'US' OR `sub_code` IS NOT NULL),
+  CONSTRAINT `chk_location_us_postal` CHECK (`line1` IS NULL OR `countryCode` <> 'US' OR `postalCode` REGEXP '^[0-9]{5}(-[0-9]{4})?$'),
+  CONSTRAINT `chk_location_tel` CHECK (`telephone` IS NULL OR `telephone` REGEXP '^\\+[1-9][0-9]{6,14}$')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Daily catalog-health snapshots, written by catalog-beer-api
--- cron/snapshot-metrics.php. Narrow by design — (date, metric, dimension,
--- value) rather than a column per metric — so adding a metric never needs a
--- migration. Values are raw counts; ratios and composite "health scores" are
--- computed at display time so the formula can change without invalidating
--- stored history. `dimension` is '' for a plain scalar or a bucket name for a
--- grouped metric (brewer_url_status/parked, beer_beverage_type/cider, …).
 CREATE TABLE `metrics_daily` (
   `snapshotDate` date NOT NULL,
   `metric` varchar(64) NOT NULL,
@@ -364,27 +379,17 @@ CREATE TABLE `privileges` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `subdivisions` (
-  -- ISO 3166-2: country, hyphen, up to three characters (US-CA, GB-ENG)
+  -- ISO 3166-2: country, hyphen, up to three characters (US-CA, GB-ENG).
+  -- Seeded for the 40 Google Address Validation regions at the level Google
+  -- reports as an administrative area; names in the local official form.
+  -- See migrations/2026-10-13-international-addresses.sql
   `sub_code` varchar(6) NOT NULL,
+  `countryCode` char(2) NOT NULL DEFAULT 'US',
   `sub_name` varchar(255) NOT NULL,
-  PRIMARY KEY (`sub_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
-CREATE TABLE `US_addresses` (
-  `locationID` varchar(36) NOT NULL,
-  `address1` varchar(255) DEFAULT NULL,
-  `address2` varchar(255) NOT NULL,
-  `city` varchar(255) NOT NULL,
-  `sub_code` varchar(6) NOT NULL,
-  `zip5` char(5) NOT NULL,
-  `zip4` char(4) DEFAULT NULL,
-  `telephone` bigint DEFAULT NULL,
-  PRIMARY KEY (`locationID`),
-  KEY `fk_sub_code` (`sub_code`),
-  CONSTRAINT `fk_locationID` FOREIGN KEY (`locationID`) REFERENCES `location` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_sub_code` FOREIGN KEY (`sub_code`) REFERENCES `subdivisions` (`sub_code`) ON DELETE CASCADE,
-  CONSTRAINT `chk_zip5_format` CHECK (`zip5` REGEXP '^[0-9]{5}$'),
-  CONSTRAINT `chk_zip4_format` CHECK (`zip4` IS NULL OR `zip4` REGEXP '^[0-9]{4}$')
+  `sub_type` varchar(32) DEFAULT NULL,
+  `parentCode` varchar(6) DEFAULT NULL,
+  PRIMARY KEY (`sub_code`),
+  KEY `idx_sub_country` (`countryCode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `users` (
@@ -431,16 +436,16 @@ CREATE TABLE `style` (
   -- canonical_name + every style_alias row, as one FULLTEXT document. Lets
   -- GET /style/search score identity terms against a single corpus, and is the
   -- only reason "IPA" can reach styles whose names spell out "India Pale Ale".
-  -- Denormalised: rebuild with migrations/rebuild-style-search-name.sql after
+  -- Denormalized: rebuild with migrations/rebuild-style-search-name.sql after
   -- every vocabulary reseed, or search silently goes stale.
   `search_name` text,
   `beverage_type` enum('beer','cider','perry','mead') NOT NULL DEFAULT 'beer',
   `parent` varchar(64) NOT NULL,
   `source` varchar(32) NOT NULL,
   `is_catch_all` tinyint(1) NOT NULL DEFAULT '0',
-  -- Catalogued beers using this style. A ranking tiebreaker for
+  -- Cataloged beers using this style. A ranking tiebreaker for
   -- GET /style/search, so styles no beer uses stop outranking styles thousands
-  -- of beers use. Denormalised and stale by design; refresh with
+  -- of beers use. Denormalized and stale by design; refresh with
   -- migrations/refresh-style-beer-count.sql on the sitemap cron's cadence.
   `beer_count` int NOT NULL DEFAULT '0',
   `abv_min` decimal(4,1) DEFAULT NULL,
