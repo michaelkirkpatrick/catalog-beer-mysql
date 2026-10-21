@@ -15,6 +15,7 @@ Each file is dated the day it was written. Its header says what it does, why, an
 | `2026-10-17-post.sql` | 2026-10-20 | 2026-10-20 |
 | `2026-10-XX-drop-us-addresses.sql` | pending (after the soak) | pending (after the soak) |
 | `2026-10-20-last-modified-index.sql` | 2026-10-21 (as `claude`, via `~/withdb.sh`; EXPLAIN on beer uses the index) | 2026-10-21 (as `claude`, via `cbdb.sh`; 161k beers, seconds; EXPLAIN uses the index) |
+| `2026-10-21-drop-post-author.sql` | pending (after the API deploy) | pending (after the API deploy) |
 
 Production backup before the 6.0 window: `/home/claude/backup-pre-6.0-2026-10-20.sql` on production-2604 (345 MB, 25 tables, `claude` 0600; taken with the wrapper `/home/claude/cbdb.sh`, which loads the API vhost's own DB credentials into the shell). Production as checked on 2026-10-20 before the run (read-only, as `claude`): `US_addresses` present, no `address` table, no address columns on `location`, `subdivisions` without `countryCode` (51 US rows), 1,501 locations, every one with a `US_addresses` row and a numbered street, and 1 with no coordinates.
 
@@ -46,6 +47,14 @@ The API 6.0 code reads the address from `location` and rejects the pre-6.0 shape
 2. **Deploy the API, then the frontend.** Until the API serves `/post`, `/news` and `/changelog` render their empty state instead of failing.
 3. **Import the first posts.** The frontend's `scratch/changelog-import/import-posts.php send https://api.catalog.beer <admin-key> --publish` posts every release through v5.4.0 plus the three old `/whats-new` articles. It uses the API, so it runs after step 2. A 409 means the post is already there, so a re-run only adds what is missing.
 4. **Write the 6.0 release post** in `/admin/posts`. The import stops at v5.4.0.
+
+## Production: posts, any admin, Markdown bodies (2026-10-21)
+
+`2026-10-21-drop-post-author.sql` drops `post.authorUserID` with its index and foreign key. Nothing read the column: any admin reads and edits any post. It ships with the API change that lets the master key's account act as an admin on `/post` (drafts are returned only on `?status=all`, so the website's public reads still never see one) and the switch of post bodies to Markdown, which the frontend renders; existing HTML bodies render unchanged.
+
+1. **Deploy the API first.** Its `INSERT` named the column until this change; under the old API, dropping it breaks every `POST /post`.
+2. **Run `2026-10-21-drop-post-author.sql`** on staging, then production. **Check:** `SHOW COLUMNS FROM post LIKE 'authorUserID'` returns no row.
+3. **Deploy the frontend.** Until then the editor still asks for drafts without `?status=all` and gets a 404 on them; the public pages are unaffected.
 
 ## Production: `modified_since` (API 6.1)
 
