@@ -12,6 +12,7 @@ Each file is dated the day it was written. Its header says what it does, why, an
 | `2026-10-13-international-addresses.sql` | 2026-10-17, original version (had `validation`) | **pending** |
 | `2026-10-17-location-address-merge.sql` | 2026-10-17, original version (had `validation`) | **pending** |
 | `2026-10-20-drop-location-validation.sql` | 2026-10-20 | **never: staging-only repair** |
+| `2026-10-17-post.sql` | 2026-10-20 | **pending** |
 | `2026-10-XX-drop-us-addresses.sql` | pending (after the soak) | pending (after the soak) |
 
 Production as checked on 2026-10-20 (read-only, as `claude`): `US_addresses` present, no `address` table, no address columns on `location`, `subdivisions` without `countryCode` (51 US rows), 1,501 locations, every one with a `US_addresses` row and a numbered street, and 1 with no coordinates.
@@ -36,4 +37,11 @@ The API 6.0 code reads the address from `location` and rejects the pre-6.0 shape
 
 **Do not run** `2026-10-20-drop-location-validation.sql` on production. The files as they stand never create the column.
 
-Not part of 6.0: `2026-10-17-post.sql` (the `post` table for `/news` and `/changelog`) lives on the `changelog` branch and ships with that work.
+## Production: posts (`/news` and `/changelog`)
+
+`2026-10-17-post.sql` creates the `post` table behind the API's `/post` routes and the frontend's `/news`, `/changelog` and their RSS feeds. It only adds a table, so it can run before the 6.0 window or in it, but always before the API deploy that carries `/post` (`main` since 2026-10-20).
+
+1. **Run `2026-10-17-post.sql`.** Check that `SHOW CREATE TABLE post` matches `catalog-beer-schema.sql`.
+2. **Deploy the API, then the frontend.** Until the API serves `/post`, `/news` and `/changelog` render their empty state instead of failing.
+3. **Import the first posts.** The frontend's `scratch/changelog-import/import-posts.php send https://api.catalog.beer <admin-key> --publish` posts every release through v5.4.0 plus the three old `/whats-new` articles. It uses the API, so it runs after step 2. A 409 means the post is already there, so a re-run only adds what is missing.
+4. **Write the 6.0 release post** in `/admin/posts`. The import stops at v5.4.0.
