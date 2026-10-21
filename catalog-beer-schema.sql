@@ -367,6 +367,35 @@ CREATE TABLE `metrics_daily` (
   KEY `idx_metric_date` (`metric`,`snapshotDate`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE `post` (
+  `id` varchar(36) NOT NULL,
+  -- news: announcements at /news. api: one row per catalog-beer-api release,
+  -- the only channel with a version or a breaking flag.
+  `channel` enum('news','api') NOT NULL,
+  `slug` varchar(120) NOT NULL,
+  `title` varchar(200) NOT NULL,
+  `summary` varchar(500) DEFAULT NULL,
+  -- Admin-authored HTML, emitted raw; only admin keys may write a post.
+  `body` mediumtext NOT NULL,
+  `version` varchar(20) DEFAULT NULL,
+  `breaking` bit(1) NOT NULL DEFAULT b'0',
+  `status` enum('draft','published') NOT NULL DEFAULT 'draft',
+  -- The date readers see; separate from createdAt so imports can back-date.
+  `publishedAt` int DEFAULT NULL,
+  `authorUserID` varchar(36) DEFAULT NULL,
+  `createdAt` int NOT NULL,
+  `lastModified` int NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_post_slug` (`channel`,`slug`),
+  UNIQUE KEY `uq_post_version` (`channel`,`version`),
+  KEY `idx_post_feed` (`channel`,`status`,`publishedAt`),
+  KEY `idx_post_author` (`authorUserID`),
+  CONSTRAINT `fk_post_author` FOREIGN KEY (`authorUserID`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `chk_post_version` CHECK (`version` IS NULL OR `channel` = 'api'),
+  CONSTRAINT `chk_post_breaking` CHECK (`breaking` = b'0' OR `channel` = 'api'),
+  CONSTRAINT `chk_post_published` CHECK (`status` = 'draft' OR `publishedAt` IS NOT NULL)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 CREATE TABLE `privileges` (
   `id` varchar(36) NOT NULL,
   `userID` varchar(36) NOT NULL,
