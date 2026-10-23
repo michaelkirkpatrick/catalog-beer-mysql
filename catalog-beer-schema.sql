@@ -152,7 +152,8 @@ CREATE TABLE `brewer` (
   `urlFailCount` smallint unsigned NOT NULL DEFAULT '0',
   `urlFinal` varchar(255) DEFAULT NULL,
   -- The URL that was removed, kept when a URL is cleared rather than replaced.
-  -- See migrations/2026-08-02-brewer-url-history.sql
+  -- (brewer_url_history itself was dropped 2026-10-23; this column goes with the
+  -- other URL-health columns once the review service's URL audit is done.)
   `urlLastKnown` varchar(255) DEFAULT NULL,
   -- RDAP registration date of the URL's domain. Later than createdAt means the
   -- domain lapsed and changed hands since we cataloged the brewery.
@@ -160,12 +161,6 @@ CREATE TABLE `brewer` (
   `urlDomainRegistered` date DEFAULT NULL,
   -- See migrations/2026-07-28-created-at.sql
   `createdAt` int NOT NULL DEFAULT '0',
-  -- The review queue, on the row. reviewedAt is set by POST /review/{id};
-  -- claimedBy/claimedAt are stamped by POST /review/claim and expire on the
-  -- read side after four hours. See migrations/2026-09-08-brewer-review.sql
-  `reviewedAt` int DEFAULT NULL,
-  `claimedBy` varchar(36) DEFAULT NULL,
-  `claimedAt` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_url` (`url`) USING BTREE,
   -- Not unique: brewers may share a domain (one brewer per homepage, any
@@ -177,8 +172,6 @@ CREATE TABLE `brewer` (
   KEY `idx_url_check` (`urlCheckedAt`),
   KEY `idx_url_status` (`urlStatus`),
   KEY `idx_brewer_createdAt` (`createdAt`),
-  KEY `idx_brewer_reviewedAt` (`reviewedAt`),
-  KEY `idx_brewer_claimedAt` (`claimedAt`),
   KEY `idx_brewer_status` (`status`),
   KEY `idx_brewer_lastModified` (`lastModified`),
   FULLTEXT KEY `ft_brewer_search` (`name`,`description`,`shortDescription`),
@@ -187,120 +180,6 @@ CREATE TABLE `brewer` (
   FULLTEXT KEY `ft_brewer_name` (`name`),
   CONSTRAINT `chk_brewer_closed_year` CHECK (`closedYear` IS NULL OR `status` = 'closed'),
   CONSTRAINT `chk_brewer_years` CHECK (`foundedYear` IS NULL OR `closedYear` IS NULL OR `closedYear` >= `foundedYear`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- Append-only history of every change to brewer.url, written by
--- Brewer::logURLChange() in catalog-beer-api. Internal only — no endpoint
--- exposes it. Answers "why does this brewery have no website?" long after the
--- cleanup that removed it. See migrations/2026-08-02-brewer-url-history.sql
-CREATE TABLE `brewer_url_history` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `brewerID` char(36) NOT NULL,
-  `oldURL` varchar(255) DEFAULT NULL,
-  `newURL` varchar(255) DEFAULT NULL,
-  -- The urlStatus the change was reacting to. Repeats the brewer enum rather
-  -- than referencing it so historical rows survive later enum changes.
-  `verdict` enum('ok','unverified','blocked','moved','parked','url_wrong','server_error','no_answer','gone') DEFAULT NULL,
-  `source` enum('api','cron','cleanup') NOT NULL DEFAULT 'api',
-  `note` varchar(255) DEFAULT NULL,
-  `changedBy` char(36) DEFAULT NULL,
-  `changedAt` int NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_bu_history_brewer` (`brewerID`,`changedAt`),
-  CONSTRAINT `fk_bu_history_brewer` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- One row per completed review of one brewer by the review loop (six steps
--- against the brewery's own site). Append-only. needsDecision rows are the
--- human check-in list; sources and changes make a review auditable and
--- hand-revertable. reviewer is a userID and deliberately not a foreign key:
--- provenance outlives the account. See migrations/2026-09-08-brewer-review.sql
-CREATE TABLE `brewer_review` (
-  `id` varchar(36) NOT NULL,
-  `brewerID` varchar(36) NOT NULL,
-  `reviewedAt` int NOT NULL,
-  `reviewer` varchar(36) NOT NULL,
-  `briefVersion` varchar(40) DEFAULT NULL,
-  `outcome` enum('updated','unchanged','created','skipped','defunct','merged','deferred') NOT NULL,
-  `urlVerdict` enum('ok','cleared','replaced','unchecked') NOT NULL DEFAULT 'unchecked',
-  `brewerChanged` varchar(255) DEFAULT NULL,
-  `beersAdded` smallint unsigned NOT NULL DEFAULT '0',
-  `beersUpdated` smallint unsigned NOT NULL DEFAULT '0',
-  `dupesDeleted` smallint unsigned NOT NULL DEFAULT '0',
-  `locationsAdded` smallint unsigned NOT NULL DEFAULT '0',
-  `locationsUpdated` smallint unsigned NOT NULL DEFAULT '0',
-  `locationsDeleted` smallint unsigned NOT NULL DEFAULT '0',
-  `sources` json DEFAULT NULL,
-  -- Stored, not JSON_LENGTH() at read time: a list returns the counts in
-  -- place of the arrays, and a JSON-derived expression in the select list of
-  -- a filesorting query is declared wide enough to blow sort_buffer_size.
-  -- Set at INSERT; both arrays are immutable afterwards.
-  `sourcesCount` smallint unsigned NOT NULL DEFAULT '0',
-  `changes` json DEFAULT NULL,
-  `changesCount` mediumint unsigned NOT NULL DEFAULT '0',
-  -- mediumtext, not text: the API caps notes at 20,000 characters and TEXT
-  -- holds 65,535 bytes, which a multibyte note can exceed while passing the
-  -- cap (error 1406 under STRICT_TRANS_TABLES, losing the audit row).
-  `notes` mediumtext,
-  `needsDecision` bit(1) NOT NULL DEFAULT b'0',
-  `question` varchar(500) DEFAULT NULL,
-  `decision` varchar(500) DEFAULT NULL,
-  `decidedAt` int DEFAULT NULL,
-  `decidedBy` varchar(36) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_review_brewer` (`brewerID`,`reviewedAt`),
-  KEY `idx_review_decision` (`needsDecision`,`reviewedAt`),
-  KEY `idx_review_reviewedAt` (`reviewedAt`),
-  CONSTRAINT `fk_review_brewer` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- The review loop's queue of breweries the catalog does not hold: a name, a
--- place and the page it was read on, researched later through the six steps
--- instead of created thin now. Two stored states; "claimed" is derived from
--- claimedAt within the 4h TTL. nameKey/urlHost are dedup keys, indexed but not
--- unique. Closed rows are the negative cache. sources is every page that named
--- it. needsDecision/question/decision mirror brewer_review for a pre-creation
--- scope call. brewerID is ON DELETE SET NULL so a created lead never dangles.
--- See migrations/2026-09-09-brewer-lead.sql
-CREATE TABLE `brewer_lead` (
-  `id` varchar(36) NOT NULL,
-  `name` varchar(255) NOT NULL,
-  `nameKey` varchar(255) NOT NULL,
-  `url` varchar(255) DEFAULT NULL,
-  `urlHost` varchar(255) DEFAULT NULL,
-  `city` varchar(100) DEFAULT NULL,
-  -- ISO 3166-2 (six characters: GB-ENG) and ISO 3166-1 alpha-2. A non-US lead
-  -- is stored and never handed out by the claim queue: it is the backlog for
-  -- expansion, not a row to research now.
-  `sub_code` varchar(6) DEFAULT NULL,
-  `countryCode` char(2) NOT NULL DEFAULT 'US',
-  `sourceUrl` varchar(255) NOT NULL,
-  `sources` json NOT NULL,
-  `note` text,
-  `status` enum('open','closed') NOT NULL DEFAULT 'open',
-  `resolution` enum('created','duplicate','not_a_brewery','out_of_scope') DEFAULT NULL,
-  `brewerID` varchar(36) DEFAULT NULL,
-  `recheckAfter` int DEFAULT NULL,
-  `createdBy` varchar(36) NOT NULL,
-  `createdAt` int NOT NULL,
-  `lastSeenAt` int NOT NULL,
-  `claimedBy` varchar(36) DEFAULT NULL,
-  `claimedAt` int DEFAULT NULL,
-  `resolvedBy` varchar(36) DEFAULT NULL,
-  `resolvedAt` int DEFAULT NULL,
-  `needsDecision` bit(1) NOT NULL DEFAULT b'0',
-  `question` varchar(500) DEFAULT NULL,
-  `decision` varchar(500) DEFAULT NULL,
-  `decidedAt` int DEFAULT NULL,
-  `decidedBy` varchar(36) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_lead_name` (`nameKey`,`sub_code`),
-  KEY `idx_lead_host` (`urlHost`),
-  KEY `idx_lead_claim` (`status`,`recheckAfter`,`createdAt`),
-  KEY `idx_lead_decision` (`needsDecision`,`createdAt`),
-  KEY `idx_lead_brewer` (`brewerID`),
-  KEY `idx_lead_country` (`countryCode`,`status`),
-  CONSTRAINT `fk_lead_brewer` FOREIGN KEY (`brewerID`) REFERENCES `brewer` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `error_log` (
