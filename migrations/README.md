@@ -16,7 +16,7 @@ Each file is dated the day it was written. Its header says what it does, why, an
 | `2026-10-XX-drop-us-addresses.sql` | pending (after the soak) | pending (after the soak) |
 | `2026-10-20-last-modified-index.sql` | 2026-10-21 (as `claude`, via `~/withdb.sh`; EXPLAIN on beer uses the index) | 2026-10-21 (as `claude`, via `cbdb.sh`; 161k beers, seconds; EXPLAIN uses the index) |
 | `2026-10-21-drop-post-author.sql` | 2026-10-21 (as `claude`, via `~/withdb.sh`, after the API deploy; 33 posts, no FK left) | 2026-10-21 (as `claude`, via `cbdb.sh`, after the API deploy; 33 posts, no FK left) |
-| `2026-10-23-review-service.sql` | pending (after the API 6.3.0 deploy) | pending (after the API 6.3.0 deploy) |
+| `2026-10-23-review-service.sql` | 2026-10-23 (as `claude`, after the API 6.3.0 deploy; counts matched the archived export: 5 reviews, 3 leads, 489 history rows) | 2026-10-23 (as `claude`, after the API 6.3.0 deploy; counts matched the archived export: 642 / 491 / 2,485) |
 
 Production backup before the 6.0 window: `/home/claude/backup-pre-6.0-2026-10-20.sql` on production-2604 (345 MB, 25 tables, `claude` 0600; taken with the wrapper `/home/claude/cbdb.sh`, which loads the API vhost's own DB credentials into the shell). Production as checked on 2026-10-20 before the run (read-only, as `claude`): `US_addresses` present, no `address` table, no address columns on `location`, `subdivisions` without `countryCode` (51 US rows), 1,501 locations, every one with a `US_addresses` row and a numbered street, and 1 with no coordinates.
 
