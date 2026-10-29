@@ -55,6 +55,7 @@ CREATE TABLE `billing_charges` (
   `stripeInvoiceItemID` varchar(255) DEFAULT NULL,
   `stripeInvoiceID` varchar(255) DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'pending',
+  `noticeSentAt` int DEFAULT NULL,
   `createdAt` int NOT NULL,
   `lastUpdated` int NOT NULL,
   PRIMARY KEY (`id`),
