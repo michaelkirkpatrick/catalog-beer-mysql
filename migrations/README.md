@@ -18,8 +18,8 @@ Each file is dated the day it was written. Its header says what it does, why, an
 | `2026-10-21-drop-post-author.sql` | 2026-10-21 (as `claude`, via `~/withdb.sh`, after the API deploy; 33 posts, no FK left) | 2026-10-21 (as `claude`, via `cbdb.sh`, after the API deploy; 33 posts, no FK left) |
 | `2026-10-23-review-service.sql` | 2026-10-23 (as `claude`, after the API 6.3.0 deploy; counts matched the archived export: 5 reviews, 3 leads, 489 history rows) | 2026-10-23 (as `claude`, after the API 6.3.0 deploy; counts matched the archived export plus the one history row logged between the export and the deploy: 642 / 491 / 2,486, that row appended to the archive first) |
 | `2026-10-29-users-signup-provenance.sql` | 2026-10-29 (as `claude`, via `~/withdb.sh`; 3 users, 0 backfilled) | 2026-10-29 (as `claude`, via `cbdb.sh`, before the API deploy; 719 users, 26 `createdAt` backfilled from `emailAuthSent`, newest 2026-09-02) |
-| `2026-10-29-api-logging-response-trim.sql` | pending (after the API 6.4.0 deploy) | pending (after the API 6.4.0 deploy; data cleanup + OPTIMIZE, off-peak) |
-| `2026-10-29-drop-algolia-table.sql` | pending (after batch-upload + delete-legacy-ids) | pending (after batch-upload + delete-legacy-ids) |
+| `2026-10-29-api-logging-response-trim.sql` | 2026-10-29 (11,962 rows; `api_logging` 69 → 45 MB after OPTIMIZE) | 2026-10-29 (143,380 rows; `response` 164 → 23.5 MB, `api_logging` 519 → 213 MB after OPTIMIZE, database 802 → 452 MB) |
+| `2026-10-29-drop-algolia-table.sql` | 2026-10-29 | 2026-10-29 (after the production re-key and legacy delete) |
 
 Production backup before the 6.0 window: `/home/claude/backup-pre-6.0-2026-10-20.sql` on production-2604 (345 MB, 25 tables, `claude` 0600; taken with the wrapper `/home/claude/cbdb.sh`, which loads the API vhost's own DB credentials into the shell). Production as checked on 2026-10-20 before the run (read-only, as `claude`): `US_addresses` present, no `address` table, no address columns on `location`, `subdivisions` without `countryCode` (51 US rows), 1,501 locations, every one with a `US_addresses` row and a numbered street, and 1 with no coordinates.
 
