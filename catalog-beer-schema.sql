@@ -313,9 +313,14 @@ CREATE TABLE `users` (
   `passwordResetKey` varchar(36) DEFAULT NULL,
   `admin` bit(1) NOT NULL DEFAULT b'0',
   `stripeCustomerID` varchar(255) DEFAULT NULL,
+  `createdAt` int DEFAULT NULL,
+  `signupIP` varchar(45) DEFAULT NULL,
+  `signupNet` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_email` (`email`) USING BTREE,
-  UNIQUE KEY `unique_passwordResetKey` (`passwordResetKey`) USING BTREE
+  UNIQUE KEY `unique_passwordResetKey` (`passwordResetKey`) USING BTREE,
+  KEY `idx_users_createdAt` (`createdAt`),
+  KEY `idx_users_signupNet_createdAt` (`signupNet`,`createdAt`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `style_class` (
