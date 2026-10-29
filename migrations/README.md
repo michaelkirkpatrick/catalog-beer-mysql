@@ -76,5 +76,8 @@ Measured 2026-10-29: 780 MB on disk, of which `api_logging` 488 MB (full entity 
 2. **Run `2026-10-29-api-logging-response-trim.sql`**, one month at a time, then `OPTIMIZE TABLE api_logging` off-peak (online rebuild; needs ~500 MB free disk). Check `SUM(LENGTH(response))` — 164 MB before.
 3. **`php algolia/batch-upload.php production`** — re-indexes every record under its entity id. The index holds both copies until step 4, so site search shows duplicate hits for the length of the run.
 4. **`php algolia/delete-legacy-ids.php production`** — deletes the old records (reads the ids from the `algolia` table). Check `error_log` for 292/293.
-5. **Run `2026-10-29-drop-algolia-table.sql`.** Then delete `algolia/delete-legacy-ids.php` from the API repo.
+5. **Orphan sweep.** Browse the index and delete every record whose objectID is not a current brewer, beer or location id (styles excepted): the Newman suite's leftovers and anything staging wrote. The one-off script is kept outside the repo (Claude's session scratchpad, 2026-10-29); dry run first.
+6. **Run `2026-10-29-drop-algolia-table.sql`.** Then delete `algolia/delete-legacy-ids.php` from the API repo.
+
+**Staging shares production's Algolia index.** Both servers hold the same application id and `Algolia.class.php` accepts only `catalog`, so steps 3–5 are production-only: running them "on staging first" writes staging's snapshot into live search (it did, 2026-10-29: 67,812 staging records upserted and the matching production legacy records deleted; the production re-key and the orphan sweep repair it). On staging run only the trim (step 2) and the drop (step 6).
 
