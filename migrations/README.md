@@ -18,6 +18,8 @@ Each file is dated the day it was written. Its header says what it does, why, an
 | `2026-10-21-drop-post-author.sql` | 2026-10-21 (as `claude`, via `~/withdb.sh`, after the API deploy; 33 posts, no FK left) | 2026-10-21 (as `claude`, via `cbdb.sh`, after the API deploy; 33 posts, no FK left) |
 | `2026-10-23-review-service.sql` | 2026-10-23 (as `claude`, after the API 6.3.0 deploy; counts matched the archived export: 5 reviews, 3 leads, 489 history rows) | 2026-10-23 (as `claude`, after the API 6.3.0 deploy; counts matched the archived export plus the one history row logged between the export and the deploy: 642 / 491 / 2,486, that row appended to the archive first) |
 | `2026-10-29-users-signup-provenance.sql` | 2026-10-29 (as `claude`, via `~/withdb.sh`; 3 users, 0 backfilled) | 2026-10-29 (as `claude`, via `cbdb.sh`, before the API deploy; 719 users, 26 `createdAt` backfilled from `emailAuthSent`, newest 2026-09-02) |
+| `2026-10-29-api-logging-response-trim.sql` | pending (after the API 6.4.0 deploy) | pending (after the API 6.4.0 deploy; data cleanup + OPTIMIZE, off-peak) |
+| `2026-10-29-drop-algolia-table.sql` | pending (after batch-upload + delete-legacy-ids) | pending (after batch-upload + delete-legacy-ids) |
 
 Production backup before the 6.0 window: `/home/claude/backup-pre-6.0-2026-10-20.sql` on production-2604 (345 MB, 25 tables, `claude` 0600; taken with the wrapper `/home/claude/cbdb.sh`, which loads the API vhost's own DB credentials into the shell). Production as checked on 2026-10-20 before the run (read-only, as `claude`): `US_addresses` present, no `address` table, no address columns on `location`, `subdivisions` without `countryCode` (51 US rows), 1,501 locations, every one with a `US_addresses` row and a numbered street, and 1 with no coordinates.
 
@@ -65,3 +67,14 @@ The API 6.0 code reads the address from `location` and rejects the pre-6.0 shape
 1. **Run `2026-10-20-last-modified-index.sql`** on staging, then production.
 2. **Check:** `SHOW INDEX FROM beer WHERE Key_name = 'idx_beer_lastModified'` returns one row, and the same for `idx_brewer_lastModified` on `brewer` and `idx_location_lastModified` on `location`.
 3. **Deploy the API** (6.1.0). `tests/modified-since.php` in the API repo asserts the index is in the canonical schema.
+
+## Production: database size — log trim and the Algolia re-key (API 6.4.0)
+
+Measured 2026-10-29: 780 MB on disk, of which `api_logging` 488 MB (full entity responses on every write), `beer` 169 MB (112 MB of B-tree indexes, each entry carrying the UUID key), `algolia` 81 MB (four UUID columns, four indexes, pure indirection). `idx_parent`/`idx_class` on `beer` back foreign keys and cannot be dropped; `idx_beverage_type` is a 1-byte enum index (~8 MB). Nothing to do on `beer`.
+
+1. **Deploy API 6.4.0.** From then on a successful write logs a stub (`apiLogging::responseStub()`), and Algolia records are keyed by entity id. The `algolia` table is no longer read.
+2. **Run `2026-10-29-api-logging-response-trim.sql`**, one month at a time, then `OPTIMIZE TABLE api_logging` off-peak (online rebuild; needs ~500 MB free disk). Check `SUM(LENGTH(response))` — 164 MB before.
+3. **`php algolia/batch-upload.php production`** — re-indexes every record under its entity id. The index holds both copies until step 4, so site search shows duplicate hits for the length of the run.
+4. **`php algolia/delete-legacy-ids.php production`** — deletes the old records (reads the ids from the `algolia` table). Check `error_log` for 292/293.
+5. **Run `2026-10-29-drop-algolia-table.sql`.** Then delete `algolia/delete-legacy-ids.php` from the API repo.
+

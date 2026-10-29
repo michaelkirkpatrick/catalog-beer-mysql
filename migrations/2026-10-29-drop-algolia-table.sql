@@ -1,0 +1,21 @@
+-- 2026-10-29 — Drop the `algolia` table: the Algolia objectID is now the
+-- entity's own id.
+--
+-- Why: every beer, brewer and location was indexed under a second random
+-- UUID that lived only in this table (algolia_id → beer_id / brewer_id /
+-- location_id), looked up on every save and delete. UUIDs don't collide
+-- across the three types, so the indirection bought nothing and cost 209k
+-- rows, 81 MB (four UUID indexes) and a query per sync.
+--
+-- Run LAST, after all three of these, in order:
+--   1. the API deploy that writes objectID = entity id (6.4.0);
+--   2. `php algolia/batch-upload.php <env>` — re-indexes every record under
+--      its new id;
+--   3. `php algolia/delete-legacy-ids.php <env>` — reads the old ids FROM THIS
+--      TABLE and deletes those records from the index. Check error_log for
+--      292/293 (a failed delete batch) before continuing; a legacy record that
+--      survives the drop can only be found by browsing the index.
+-- Nothing in the API reads the table after step 1, so leaving it in place
+-- between the deploy and this drop is harmless.
+
+DROP TABLE algolia;
