@@ -3,6 +3,6 @@
 -- against it. Nothing reads US_addresses after that deploy; this is the point
 -- of no return for the copy, so run it after the soak, not with the migration.
 --
--- Rename the file to the date it ran.
+-- Ran 2026-11-01 on staging and production.
 
 DROP TABLE `US_addresses`;

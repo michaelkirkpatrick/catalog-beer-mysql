@@ -51,7 +51,7 @@
 -- Deploy order: THIS MIGRATION FIRST, then the API. The old code never reads
 -- `address`; the new code reads nothing else. `US_addresses` is kept, unread,
 -- until the suite is green on the new table, then dropped by
--- 2026-10-XX-drop-us-addresses.sql (written alongside, run after the soak).
+-- 2026-11-01-drop-us-addresses.sql (written alongside, run after the soak).
 
 CREATE TABLE `address` (
   `locationID`        varchar(36)  NOT NULL,

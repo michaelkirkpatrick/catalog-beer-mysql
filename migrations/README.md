@@ -13,7 +13,7 @@ Each file is dated the day it was written. Its header says what it does, why, an
 | `2026-10-17-location-address-merge.sql` | 2026-10-17, original version (had `validation`) | 2026-10-20 (1,501 locations with `line1`; no `validation` column) |
 | `2026-10-20-drop-location-validation.sql` | 2026-10-20 | **never: staging-only repair** |
 | `2026-10-17-post.sql` | 2026-10-20 | 2026-10-20 |
-| `2026-10-XX-drop-us-addresses.sql` | pending (after the soak) | pending (after the soak) |
+| `2026-11-01-drop-us-addresses.sql` | 2026-11-01 (as `claude`, via `site-sql`) | 2026-11-01 (as `claude`, via `site-sql`; 1,441 rows, all already on `location`; backup `~claude/site-sql-backups/catalogbeer-20261101-073701-648564.sql.gz`) |
 | `2026-10-20-last-modified-index.sql` | 2026-10-21 (as `claude`, via `~/withdb.sh`; EXPLAIN on beer uses the index) | 2026-10-21 (as `claude`, via `cbdb.sh`; 161k beers, seconds; EXPLAIN uses the index) |
 | `2026-10-21-drop-post-author.sql` | 2026-10-21 (as `claude`, via `~/withdb.sh`, after the API deploy; 33 posts, no FK left) | 2026-10-21 (as `claude`, via `cbdb.sh`, after the API deploy; 33 posts, no FK left) |
 | `2026-10-23-review-service.sql` | 2026-10-23 (as `claude`, after the API 6.3.0 deploy; counts matched the archived export: 5 reviews, 3 leads, 489 history rows) | 2026-10-23 (as `claude`, after the API 6.3.0 deploy; counts matched the archived export plus the one history row logged between the export and the deploy: 642 / 491 / 2,486, that row appended to the archive first) |
@@ -39,7 +39,7 @@ The API 6.0 code reads the address from `location` and rejects the pre-6.0 shape
 5. **Deploy the frontend** in the same window.
 6. **Smoke test.** `GET /location/{id}` returns the nested `address`. A `POST /location` with an address returns 201. One without an address returns 400 with "Every location needs its address".
 7. **Re-save the Algolia records** (locations, brewers, beers), since pushing settings never re-indexes them.
-8. **After the soak** (a week of clean error logs): rename `2026-10-XX-drop-us-addresses.sql` to the date it runs and run it on both databases. That is the point of no return for the legacy copy.
+8. **After the soak** (a week of clean error logs): rename `2026-10-XX-drop-us-addresses.sql` to the date it runs and run it on both databases. That is the point of no return for the legacy copy. (Done 2026-11-01 as `2026-11-01-drop-us-addresses.sql`.)
 
 **Do not run** `2026-10-20-drop-location-validation.sql` on production. The files as they stand never create the column.
 
