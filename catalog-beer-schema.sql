@@ -122,7 +122,7 @@ CREATE TABLE `brewer` (
   `cbVerified` bit(1) NOT NULL DEFAULT b'0',
   `brewerVerified` bit(1) NOT NULL DEFAULT b'0',
   -- Operating status, year-only dates and country. status is the flag the
-  -- frontend, search, the URL cron and the location gate read; a closure
+  -- frontend, search and the location gate read; a closure
   -- whose year is unknown is status=closed with closedYear NULL. countryCode
   -- is ISO 3166-1 alpha-2 like location.countryCode.
   -- See migrations/2026-10-05-brewer-status-country.sql
@@ -131,21 +131,6 @@ CREATE TABLE `brewer` (
   `closedYear` smallint unsigned DEFAULT NULL,
   `countryCode` char(2) NOT NULL DEFAULT 'US',
   `lastModified` int NOT NULL,
-  -- URL health, written by the check-urls monitoring cron (report-only; see
-  -- migrations/2026-07-28-brewer-url-status.sql for status meanings)
-  `urlStatus` enum('ok','unverified','blocked','moved','parked','url_wrong','server_error','no_answer','gone') NOT NULL DEFAULT 'unverified',
-  `urlCheckedAt` int DEFAULT NULL,
-  `urlLastOkAt` int DEFAULT NULL,
-  `urlFailCount` smallint unsigned NOT NULL DEFAULT '0',
-  `urlFinal` varchar(255) DEFAULT NULL,
-  -- The URL that was removed, kept when a URL is cleared rather than replaced.
-  -- (brewer_url_history itself was dropped 2026-10-23; this column goes with the
-  -- other URL-health columns once the review service's URL audit is done.)
-  `urlLastKnown` varchar(255) DEFAULT NULL,
-  -- RDAP registration date of the URL's domain. Later than createdAt means the
-  -- domain lapsed and changed hands since we cataloged the brewery.
-  -- See migrations/2026-08-02-brewer-url-domain-registered.sql
-  `urlDomainRegistered` date DEFAULT NULL,
   -- See migrations/2026-07-28-created-at.sql
   `createdAt` int NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
@@ -156,8 +141,6 @@ CREATE TABLE `brewer` (
   -- from an email-domain match, so a shared domain shares staff by design.
   -- See migrations/2026-09-24-brewer-shared-domain.sql
   KEY `idx_brewer_domain` (`domainName`),
-  KEY `idx_url_check` (`urlCheckedAt`),
-  KEY `idx_url_status` (`urlStatus`),
   KEY `idx_brewer_createdAt` (`createdAt`),
   KEY `idx_brewer_status` (`status`),
   KEY `idx_brewer_lastModified` (`lastModified`),
