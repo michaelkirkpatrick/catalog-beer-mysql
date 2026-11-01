@@ -14,7 +14,7 @@ Each file is dated the day it was written. Its header says what it does, why, an
 | `2026-10-20-drop-location-validation.sql` | 2026-10-20 | **never: staging-only repair** |
 | `2026-10-17-post.sql` | 2026-10-20 | 2026-10-20 |
 | `2026-11-01-drop-us-addresses.sql` | 2026-11-01 (as `claude`, via `site-sql`) | 2026-11-01 (as `claude`, via `site-sql`; 1,441 rows, all already on `location`; backup `~claude/site-sql-backups/catalogbeer-20261101-073701-648564.sql.gz`) |
-| `2026-11-01-drop-brewer-url-health.sql` | not yet: after the API deploy | not yet: after the API deploy |
+| `2026-11-01-drop-brewer-url-health.sql` | 2026-11-01 (as `claude`, via `site-sql`, after the API deploy; brewer create/PATCH/clear/PUT/delete smoke-tested after) | 2026-11-01 (as `claude`, via `site-sql`, after the API deploy; 6,697 brewers; backup `~claude/site-sql-backups/catalogbeer-20261101-150314-692413.sql.gz`) |
 | `2026-10-20-last-modified-index.sql` | 2026-10-21 (as `claude`, via `~/withdb.sh`; EXPLAIN on beer uses the index) | 2026-10-21 (as `claude`, via `cbdb.sh`; 161k beers, seconds; EXPLAIN uses the index) |
 | `2026-10-21-drop-post-author.sql` | 2026-10-21 (as `claude`, via `~/withdb.sh`, after the API deploy; 33 posts, no FK left) | 2026-10-21 (as `claude`, via `cbdb.sh`, after the API deploy; 33 posts, no FK left) |
 | `2026-10-23-review-service.sql` | 2026-10-23 (as `claude`, after the API 6.3.0 deploy; counts matched the archived export: 5 reviews, 3 leads, 489 history rows) | 2026-10-23 (as `claude`, after the API 6.3.0 deploy; counts matched the archived export plus the one history row logged between the export and the deploy: 642 / 491 / 2,486, that row appended to the archive first) |
