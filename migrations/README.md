@@ -22,7 +22,7 @@ Each file is dated the day it was written. Its header says what it does, why, an
 | `2026-10-29-api-logging-response-trim.sql` | 2026-10-29 (11,962 rows; `api_logging` 69 → 45 MB after OPTIMIZE) | 2026-10-29 (143,380 rows; `response` 164 → 23.5 MB, `api_logging` 519 → 213 MB after OPTIMIZE, database 802 → 452 MB) |
 | `2026-10-29-drop-algolia-table.sql` | 2026-10-29 | 2026-10-29 (after the production re-key and legacy delete) |
 | `2026-11-01-audit-log.sql` | 2026-11-02 | 2026-11-02 (backup `catalogbeer-20261102-115121-827606.sql.gz`); baseline backfill run the same day: 6,710 brewers + 241,494 beers + 1,695 locations = 249,899 rows, 155 MB, 44 s |
-| `2026-11-02-api-logging-agent-duration.sql` | **not yet** | **not yet** — run BEFORE the API 6.7.0 deploy (its INSERT names `userAgent` and `durationMs`) |
+| `2026-11-02-api-logging-agent-duration.sql` | 2026-11-02 (as `claude`, via `site-sql`, before the API 6.7.0 deploy) | 2026-11-02 (as `claude`, via `site-sql`, before the API 6.7.0 deploy; backup `catalogbeer-20261102-125113-838639.sql.gz`) |
 
 Production backup before the 6.0 window: `/home/claude/backup-pre-6.0-2026-10-20.sql` on production-2604 (345 MB, 25 tables, `claude` 0600; taken with the wrapper `/home/claude/cbdb.sh`, which loads the API vhost's own DB credentials into the shell). Production as checked on 2026-10-20 before the run (read-only, as `claude`): `US_addresses` present, no `address` table, no address columns on `location`, `subdivisions` without `countryCode` (51 US rows), 1,501 locations, every one with a `US_addresses` row and a numbered street, and 1 with no coordinates.
 
