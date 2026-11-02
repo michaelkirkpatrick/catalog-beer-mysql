@@ -45,6 +45,12 @@ The US rules that used to be column types are now two `CHECK` constraints that a
 
 `subdivisions` is seeded from ISO 3166-2 for the 40 regions Google Address Validation covers, at the level Google reports as an administrative area, with `countryCode`, `sub_type` (state, province, region, canton, ...) and `parentCode` (Belgian provinces sit under regions). Names are the local official form (`West-Vlaanderen`, `Bayern`).
 
+## Audit log
+
+`audit_log` is the append-only record of every change to a brewer, beer or location and to every account setting that matters (spend cap, billing on/off, email, password, API keys, brewery privileges), with the acting user, key, IP and time (November 2026; design in the API repo's `Claude Ideas/audit-log.md`). A catalog row's revision carries `snapshot`, the complete database row as it stood after the change, so a revert writes the previous snapshot back and a deleted record is recoverable from the row before its tombstone; a settings row carries `field`, `oldValue` and `newValue`. The two kinds share one table so there is one helper, one history query and one retention rule.
+
+Three rules are built into the DDL. There is no foreign key to any entity table, because a cascading history would let a malicious delete erase its own evidence; `entityID` is a bare `char(36)`. The table is never pruned and never cascaded (the API's `cron/prune-api-logging.php` says so by name). Deletes write a row: `action='delete'` with a NULL `snapshot`. The previous revision of an entity is the previous row with the same `(entityType, entityID)`, which `idx_audit_entity` answers directly. The baseline, one `action='create', source='backfill'` row per existing catalog row stamped with the row's `createdAt`, is written once by the API's `cron/backfill-audit.php`.
+
 ## Postal codes
 
 Postal codes are identifiers, never numbers: `location.postalCode` is `varchar(20)`. ZIP codes in particular have significant leading zeros — 00501–09999 covers New England, New Jersey, Puerto Rico and the Virgin Islands — and nothing ever does arithmetic on one.

@@ -35,6 +35,53 @@ CREATE TABLE `api_usage` (
   UNIQUE KEY `idx_apiKey_year_month` (`apiKey`,`year`,`month`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+-- The audit trail: every change to a catalog record (brewer, beer, location)
+-- and to every account setting that matters, with the acting user, key, IP
+-- and time. Catalog rows carry `snapshot`, the complete row AFTER the change
+-- (a revert writes the previous snapshot back; a delete is recoverable from
+-- the previous row). Settings rows carry field/oldValue/newValue. Written by
+-- the API's Audit::record()/Audit::set(); read by /brewer/{id}/history and
+-- friends, /audit and the revert routes. Design: catalog-beer-api
+-- `Claude Ideas/audit-log.md`; see migrations/2026-11-01-audit-log.sql.
+--
+-- NEVER pruned and NEVER cascaded: no foreign key to any entity table, since
+-- a cascading history means a malicious delete erases its own evidence. If
+-- this table is ever trimmed it is api_logging with more steps. Excluded by
+-- name from cron/prune-api-logging.php and anything like it.
+--
+-- The previous revision of an entity is the previous row with the same
+-- (entityType, entityID), which idx_audit_entity answers; there is no priorID.
+-- action='delete' rows carry a NULL snapshot. Baseline rows are
+-- action='create', source='backfill', changedAt = the row's createdAt.
+CREATE TABLE `audit_log` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `entityType` enum('brewer','beer','location','user','api_key','privilege') NOT NULL,
+  -- bare; no FK, ever
+  `entityID` char(36) NOT NULL,
+  `action` enum('create','update','delete','revert','set') NOT NULL,
+  -- Records: the complete row AFTER the action. NULL for delete.
+  `snapshot` json DEFAULT NULL,
+  -- Settings: one field per row.
+  `field` varchar(64) DEFAULT NULL,
+  `oldValue` text DEFAULT NULL,
+  `newValue` text DEFAULT NULL,
+  -- set when action='revert': the audit_log.id whose snapshot was restored
+  `revertOf` bigint unsigned DEFAULT NULL,
+  -- users.id; NULL for cron, webhook and backfill rows
+  `actorID` char(36) DEFAULT NULL,
+  -- api_keys.id, master keys included (the opposite of api_logging)
+  `actorKey` char(36) DEFAULT NULL,
+  `source` enum('api','admin','webhook','cron','cleanup','backfill') NOT NULL,
+  `ipAddress` varchar(45) DEFAULT NULL,
+  -- revert reason, cascade label, backfill label
+  `note` varchar(255) DEFAULT NULL,
+  `changedAt` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_audit_entity` (`entityType`,`entityID`,`id`),
+  KEY `idx_audit_actor` (`actorID`,`id`),
+  KEY `idx_audit_time` (`changedAt`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 -- Stripe overage billing: one row per key per month with billable overage
 -- ($1 per 1,000 requests over the free tier, blocks rounded up). Written by
 -- catalog-beer-api cron/bill-usage.php; status advanced by the cron
