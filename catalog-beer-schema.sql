@@ -15,11 +15,13 @@ CREATE TABLE `api_logging` (
   `apiKey` varchar(36) DEFAULT NULL,
   `timestamp` int DEFAULT NULL,
   `ipAddress` varchar(45) DEFAULT NULL,
+  `userAgent` varchar(255) DEFAULT NULL,
   `method` varchar(6) DEFAULT NULL,
   `uri` varchar(255) DEFAULT NULL,
   `body` text,
   `response` text,
   `responseCode` int DEFAULT NULL,
+  `durationMs` int unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_method_ts` (`method`,`timestamp`,`responseCode`,`apiKey`,`uri`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
