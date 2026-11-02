@@ -21,7 +21,7 @@ Each file is dated the day it was written. Its header says what it does, why, an
 | `2026-10-29-users-signup-provenance.sql` | 2026-10-29 (as `claude`, via `~/withdb.sh`; 3 users, 0 backfilled) | 2026-10-29 (as `claude`, via `cbdb.sh`, before the API deploy; 719 users, 26 `createdAt` backfilled from `emailAuthSent`, newest 2026-09-02) |
 | `2026-10-29-api-logging-response-trim.sql` | 2026-10-29 (11,962 rows; `api_logging` 69 → 45 MB after OPTIMIZE) | 2026-10-29 (143,380 rows; `response` 164 → 23.5 MB, `api_logging` 519 → 213 MB after OPTIMIZE, database 802 → 452 MB) |
 | `2026-10-29-drop-algolia-table.sql` | 2026-10-29 | 2026-10-29 (after the production re-key and legacy delete) |
-| `2026-11-01-audit-log.sql` | **not yet** | **not yet** — run BEFORE the API 6.5.0 deploy, then the baseline backfill (see below) |
+| `2026-11-01-audit-log.sql` | 2026-11-02 | 2026-11-02 (backup `catalogbeer-20261102-115121-827606.sql.gz`); baseline backfill run the same day: 6,710 brewers + 241,494 beers + 1,695 locations = 249,899 rows, 155 MB, 44 s |
 
 Production backup before the 6.0 window: `/home/claude/backup-pre-6.0-2026-10-20.sql` on production-2604 (345 MB, 25 tables, `claude` 0600; taken with the wrapper `/home/claude/cbdb.sh`, which loads the API vhost's own DB credentials into the shell). Production as checked on 2026-10-20 before the run (read-only, as `claude`): `US_addresses` present, no `address` table, no address columns on `location`, `subdivisions` without `countryCode` (51 US rows), 1,501 locations, every one with a `US_addresses` row and a numbered street, and 1 with no coordinates.
 
@@ -51,7 +51,7 @@ The API 6.0 code reads the address from `location` and rejects the pre-6.0 shape
 
 1. **Run `2026-11-01-audit-log.sql` on staging, then production, BEFORE the API deploy.** Every write path inserts into the table; under the new API a missing table logs one error (371) per write and the write itself still succeeds, so the order matters for the trail, not for the catalog. Check `SHOW CREATE TABLE audit_log` against `catalog-beer-schema.sql`: no `FOREIGN KEY`, the three `idx_audit_*` keys.
 2. **Deploy the API.** Live writes start leaving rows at once.
-3. **Write the baseline, once per database:** `php cron/backfill-audit.php staging` / `php cron/backfill-audit.php production` from the vhost root (`--dry-run` first prints the counts). One `create`/`backfill` row per brewer, beer and location that has no history yet, stamped with the row's `createdAt`; entities already written under the new API keep their live row. Expect ~230k rows, roughly 140 MB, a few minutes. Idempotent: a second run writes nothing.
+3. **Write the baseline, once per database:** `php cron/backfill-audit.php staging` / `php cron/backfill-audit.php production` from the vhost root (`--dry-run` first prints the counts). One `create`/`backfill` row per brewer, beer and location that has no history yet, stamped with the row's `createdAt`; entities already written under the new API keep their live row. Production 2026-11-02: 249,899 rows, 155 MB, 44 seconds. Idempotent: a second run writes nothing.
 4. **Check:** `SELECT source, COUNT(*) FROM audit_log GROUP BY source` shows `backfill` at the catalog's size and `api` growing; `GET /brewer/{id}/history` with an admin key returns the baseline row for any brewer.
 
 Never add `audit_log` to a prune job. If it ever has to shrink, compress the JSON or move rows older than a few years to an archive table (API `Claude Ideas/audit-log.md` § 5).
