@@ -82,6 +82,10 @@ Never add `audit_log` to a prune job. If it ever has to shrink, compress the JSO
 2. **Check:** `SHOW INDEX FROM beer WHERE Key_name = 'idx_beer_lastModified'` returns one row, and the same for `idx_brewer_lastModified` on `brewer` and `idx_location_lastModified` on `location`.
 3. **Deploy the API** (6.1.0). `tests/modified-since.php` in the API repo asserts the index is in the canonical schema.
 
+## Production: activity report indexes (API 6.8.0)
+
+`2026-11-04-api-logging-activity-indexes.sql` — run on both servers 2026-11-04 (online, a few seconds). `api_logging` (283 MB) outgrew production's 256 MB buffer pool, so any query needing a column outside the covering index was a full table scan from disk and the redesigned `/activity` took 24 s. `durationMs` joins `idx_method_ts` (the endpoint timings become index-only) and `idx_apiKey_ts` (apiKey, timestamp) lets the per-key breakdowns seek the busiest keys' rows. Deploy API 6.8.0's second cut after it; the first cut runs without them, slowly.
+
 ## Production: database size — log trim and the Algolia re-key (API 6.4.0)
 
 Measured 2026-10-29: 780 MB on disk, of which `api_logging` 488 MB (full entity responses on every write), `beer` 169 MB (112 MB of B-tree indexes, each entry carrying the UUID key), `algolia` 81 MB (four UUID columns, four indexes, pure indirection). `idx_parent`/`idx_class` on `beer` back foreign keys and cannot be dropped; `idx_beverage_type` is a 1-byte enum index (~8 MB). Nothing to do on `beer`.

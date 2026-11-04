@@ -23,7 +23,8 @@ CREATE TABLE `api_logging` (
   `responseCode` int DEFAULT NULL,
   `durationMs` int unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_method_ts` (`method`,`timestamp`,`responseCode`,`apiKey`,`uri`)
+  KEY `idx_method_ts` (`method`,`timestamp`,`responseCode`,`apiKey`,`uri`,`durationMs`),
+  KEY `idx_apiKey_ts` (`apiKey`,`timestamp`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE `api_usage` (
