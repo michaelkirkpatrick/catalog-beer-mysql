@@ -329,6 +329,13 @@ CREATE TABLE `users` (
   `emailVerified` bit(1) NOT NULL DEFAULT b'0',
   `emailAuth` varchar(36) DEFAULT NULL,
   `emailAuthSent` int DEFAULT NULL,
+  -- A requested change of email, held until the new inbox confirms it (API
+  -- 6.10.0). NULL as a block when none is pending. The code is separate from
+  -- emailAuth, which belongs to sign-up verification.
+  -- See migrations/2026-11-06-users-pending-email.sql
+  `pendingEmail` varchar(255) DEFAULT NULL,
+  `pendingEmailAuth` varchar(36) DEFAULT NULL,
+  `pendingEmailSent` int DEFAULT NULL,
   `passwordResetSent` int DEFAULT NULL,
   `passwordResetKey` varchar(36) DEFAULT NULL,
   `admin` bit(1) NOT NULL DEFAULT b'0',
@@ -339,6 +346,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_email` (`email`) USING BTREE,
   UNIQUE KEY `unique_passwordResetKey` (`passwordResetKey`) USING BTREE,
+  UNIQUE KEY `unique_pendingEmailAuth` (`pendingEmailAuth`),
   KEY `idx_users_createdAt` (`createdAt`),
   KEY `idx_users_signupNet_createdAt` (`signupNet`,`createdAt`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
