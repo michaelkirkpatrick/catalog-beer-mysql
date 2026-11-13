@@ -338,6 +338,10 @@ CREATE TABLE `users` (
   `pendingEmailSent` int DEFAULT NULL,
   `passwordResetSent` int DEFAULT NULL,
   `passwordResetKey` varchar(36) DEFAULT NULL,
+  -- +1 each time the password is set. The website stores it in every session
+  -- and ends one whose number is behind: a new password signs out everywhere
+  -- else. See migrations/2026-11-13-users-session-gen.sql
+  `sessionGen` int NOT NULL DEFAULT 0,
   `admin` bit(1) NOT NULL DEFAULT b'0',
   `stripeCustomerID` varchar(255) DEFAULT NULL,
   `createdAt` int DEFAULT NULL,
